@@ -16,6 +16,8 @@ and do not use inline styles.
   `@theme inline`.
 - Use nested CSS only where it improves scoping and readability.
 
-> Resolves Q3 of `.plan/002-2026-08-03-pixel-perfect-the-visual-design.md`: the
-> former `main.css` / `setup` / `basics` / `cmps` structure predated this Tailwind
-> setup and no longer applies. The token intent above is what survives from it.
+## Chat UI
+- Render `message` content as Markdown, with code in fenced, syntax-highlighted blocks.
+- Treat `tutor` output as untrusted text. Never pass it to `dangerouslySetInnerHTML`.
+- While the `tutor` is streaming, show a loading state and disable sending a new `message`.
+- On an API failure, show a `sonner` toast and keep the `chat` and the typed input intact.
