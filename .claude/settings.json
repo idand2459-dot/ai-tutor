@@ -1,0 +1,48 @@
+{
+  "$comment": "Guardrail wiring. Claude Code only reads hook and permission config from this file — a hook script in .claude/hooks/ that is not listed here never runs. See AGENTS.md.",
+  "$comment2": "Approves the figma server from .mcp.json by name rather than using enableAllProjectMcpServers, so adding a server to .mcp.json is still a deliberate act. Without this, agents dev-loop.js spawns headlessly would see the server as 'pending approval' and silently run with no Figma tools.",
+  "enabledMcpjsonServers": ["figma", "linear"],
+  "permissions": {
+    "deny": [
+      "Read(./.env)",
+      "Read(./frontend/.env)",
+      "Read(./backend/.env)",
+      "Bash(rm -rf *)",
+      "Bash(git push --force*)",
+      "Bash(git reset --hard*)",
+      "Bash(*DROP TABLE*)",
+      "Bash(*DROP DATABASE*)"
+    ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node .claude/hooks/block-secret-file-access.js"
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node .claude/hooks/block-destructive-bash.js"
+          }
+        ]
+      },
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node .claude/hooks/enforce-agent-boundaries.js"
+          }
+        ]
+      }
+    ]
+  }
+}
