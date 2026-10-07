@@ -29,6 +29,10 @@
           {
             "type": "command",
             "command": "node .claude/hooks/block-destructive-bash.js"
+          },
+          {
+            "type": "command",
+            "command": "node .claude/hooks/block-unapproved-git.js"
           }
         ]
       },
