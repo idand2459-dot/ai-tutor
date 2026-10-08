@@ -16,7 +16,7 @@ wired into the runtime by `.claude/settings.json`. The boundary hook will hard-b
 write outside your allowed paths.
 
 ## Stack
-- Node.js 20 + TypeScript, ESM (`"type": "module"`, matching the repo root)
+- Node.js 22.12 + TypeScript, ESM (`"type": "module"` in `backend/package.json`, a self-contained package; there is no root `package.json`)
 - Express 5
 - Vitest (unit) + Supertest (HTTP integration)
 
