@@ -1,14 +1,26 @@
 import request from 'supertest'
 import { describe, expect, it } from 'vitest'
 import { createApp } from '../../src/app.js'
-import { fakeClient, fakeStream, textDelta } from '../helpers/fake-anthropic.js'
+import { fakeClient, fakeStream, textDelta, textMessage } from '../helpers/fake-anthropic.js'
 
 const FRONTEND_URL = 'http://localhost:3000'
 const OTHER_ORIGIN = 'http://evil.example'
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 
+const quizChat = [{ role: 'user', content: 'hi' }, { role: 'tutor', content: 'hello' }]
+const quizOutput = {
+  quiz: {
+    questions: [0, 1, 2, 3, 4].map(index => ({
+      text: `Question ${index}?`,
+      options: ['A', 'B', 'C', 'D'],
+      correctOption: 0,
+      explanation: 'A is right.'
+    }))
+  }
+}
+
 function buildApp() {
-  const { client, requests } = fakeClient(fakeStream([textDelta('hi')]))
+  const { client, requests } = fakeClient(fakeStream([textDelta('hi')]), [textMessage(JSON.stringify(quizOutput))])
   const app = createApp({
     client,
     config: { frontendUrl: FRONTEND_URL, model: 'test-model' },
@@ -154,6 +166,62 @@ describe('app', () => {
 
       expect(response.status).toBe(200)
       expect(response.headers['content-type']).toMatch(/^text\/event-stream/)
+    })
+  })
+
+  describe('quiz route', () => {
+    it('is mounted at POST /api/quiz', async () => {
+      const response = await request(buildApp().app).post('/api/quiz').send({ messages: quizChat })
+
+      expect(response.status).toBe(200)
+      expect(response.headers['content-type']).toMatch(/^application\/json/)
+      expect(response.body.quiz.questions).toHaveLength(5)
+    })
+
+    it('returns 404 not_found for GET /api/quiz', async () => {
+      const response = await request(buildApp().app).get('/api/quiz')
+
+      expect(response.status).toBe(404)
+      expect(response.body.error.code).toBe('not_found')
+    })
+
+    it('allows FRONTEND_URL on POST /api/quiz', async () => {
+      const response = await request(buildApp().app)
+        .post('/api/quiz')
+        .set('Origin', FRONTEND_URL)
+        .send({ messages: quizChat })
+
+      expect(response.headers['access-control-allow-origin']).toBe(FRONTEND_URL)
+    })
+
+    it('sends no allow header to another origin on POST /api/quiz', async () => {
+      const response = await request(buildApp().app)
+        .post('/api/quiz')
+        .set('Origin', OTHER_ORIGIN)
+        .send({ messages: quizChat })
+
+      expect(response.headers['access-control-allow-origin']).toBeUndefined()
+    })
+
+    it('answers a preflight from FRONTEND_URL for POST /api/quiz', async () => {
+      const response = await request(buildApp().app)
+        .options('/api/quiz')
+        .set('Origin', FRONTEND_URL)
+        .set('Access-Control-Request-Method', 'POST')
+        .set('Access-Control-Request-Headers', 'Content-Type')
+
+      expect(response.status).toBe(204)
+      expect(response.headers['access-control-allow-origin']).toBe(FRONTEND_URL)
+      expect(response.headers['access-control-allow-methods']).toContain('POST')
+    })
+
+    it('gives a preflight from another origin no allow header for POST /api/quiz', async () => {
+      const response = await request(buildApp().app)
+        .options('/api/quiz')
+        .set('Origin', OTHER_ORIGIN)
+        .set('Access-Control-Request-Method', 'POST')
+
+      expect(response.headers['access-control-allow-origin']).toBeUndefined()
     })
   })
 })

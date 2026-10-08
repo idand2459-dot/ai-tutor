@@ -8,6 +8,7 @@ export type ErrorCode =
   | 'proxy_misconfigured'
   | 'upstream_unavailable'
   | 'tutor_refused'
+  | 'quiz_malformed'
   | 'internal_error'
 
 export type ErrorBody = {

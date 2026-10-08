@@ -4,7 +4,9 @@ import express, { type ErrorRequestHandler } from 'express'
 import { createChatService, type MessagesClient } from './lib/chat.service.js'
 import type { Config } from './lib/config.js'
 import { getRequestId, sendError } from './lib/http-error.js'
-import { createChatRouter, type ChatLog } from './route/chat.js'
+import { createQuizService, type QuizMessagesClient } from './lib/quiz.service.js'
+import { createChatRouter, type ChatLogEntry } from './route/chat.js'
+import { createQuizRouter, type QuizLogEntry } from './route/quiz.js'
 
 // Large enough for the biggest valid chat (50 messages × 8,000 characters, at up to
 // 4 UTF-8 bytes each) plus JSON overhead. Validation enforces the real limits.
@@ -25,11 +27,15 @@ function bodyErrorReason(error: unknown) {
   return typeof type === 'string' ? BODY_ERROR_REASONS[type] : undefined
 }
 
+// Receives the failure lines of every route.
+export type AppLog = (entry: ChatLogEntry | QuizLogEntry) => void
+
 export type AppOptions = {
-  client: MessagesClient
+  // `messages.stream` serves /api/chat, `messages.create` serves /api/quiz.
+  client: MessagesClient & QuizMessagesClient
   // Only what the app needs. The API key stays with whoever builds `client`.
   config: Pick<Config, 'frontendUrl' | 'model'>
-  log?: ChatLog
+  log?: AppLog
 }
 
 export function createApp({ client, config, log }: AppOptions) {
@@ -60,6 +66,11 @@ export function createApp({ client, config, log }: AppOptions) {
 
   app.use('/api/chat', createChatRouter({
     chatService: createChatService({ client, model: config.model }),
+    ...(log === undefined ? {} : { log })
+  }))
+
+  app.use('/api/quiz', createQuizRouter({
+    quizService: createQuizService({ client, model: config.model }),
     ...(log === undefined ? {} : { log })
   }))
 

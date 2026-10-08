@@ -1,5 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk'
 import type { MessagesClient, UpstreamStream } from '../../src/lib/chat.service.js'
+import type { QuizMessagesClient, QuizRequestOptions } from '../../src/lib/quiz.service.js'
 
 // Event builders. Casts keep fixtures minimal; the service reads only these fields.
 export function textDelta(text: string): Anthropic.MessageStreamEvent {
@@ -64,17 +65,54 @@ export function hangingStream(events: Anthropic.MessageStreamEvent[]) {
   return stream
 }
 
-export function fakeClient(stream: UpstreamStream = fakeStream([])) {
+// A non-streaming response with one text block. Casts keep fixtures minimal; the quiz
+// service reads only `content` and `stop_reason`.
+export function textMessage(text: string, stopReason: Anthropic.StopReason = 'end_turn'): Anthropic.Message {
+  return {
+    type: 'message',
+    role: 'assistant',
+    content: [{ type: 'text', text, citations: null }],
+    stop_reason: stopReason
+  } as Anthropic.Message
+}
+
+export function refusalMessage(): Anthropic.Message {
+  return { type: 'message', role: 'assistant', content: [], stop_reason: 'refusal' } as unknown as Anthropic.Message
+}
+
+export type CreateRequest = {
+  params: Anthropic.MessageCreateParamsNonStreaming
+  options: QuizRequestOptions | undefined
+}
+
+// `stream` serves chat requests. `createResponses` serves quiz requests in order: a Message
+// is returned, an Error is thrown. Running out of scripted responses fails the test.
+export function fakeClient(
+  stream: UpstreamStream = fakeStream([]),
+  createResponses: (Anthropic.Message | Error)[] = []
+) {
   const requests: Anthropic.MessageStreamParams[] = []
-  const client: MessagesClient = {
+  const createRequests: CreateRequest[] = []
+  const client: MessagesClient & QuizMessagesClient = {
     messages: {
       stream(params) {
         requests.push(params)
         return stream
+      },
+      async create(params, options) {
+        createRequests.push({ params, options })
+        const response = createResponses[createRequests.length - 1]
+        if (response === undefined) {
+          throw new Error(`fakeClient: no scripted response for create call ${createRequests.length}`)
+        }
+        if (response instanceof Error) {
+          throw response
+        }
+        return response
       }
     }
   }
-  return { client, requests }
+  return { client, requests, createRequests }
 }
 
 // SDK errors as the client throws them for an HTTP status. `providerMessage` stands in
