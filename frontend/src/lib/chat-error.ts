@@ -23,3 +23,23 @@ export class ChatError extends Error {
     this.requestId = requestId
   }
 }
+
+// The only text a chat failure shows the user. The server's `error.message` is
+// never shown, so the wording stays stable and testable. `satisfies` makes a
+// missing code a compile error.
+const TOAST_TEXT = {
+  validation_error: "Message couldn't be sent. Check its length and try again.",
+  upstream_rate_limited: "The tutor is busy. Wait a moment, then send again.",
+  proxy_misconfigured: "The proxy isn't set up correctly. Check the backend API key and model.",
+  upstream_unavailable: "The tutor is unreachable right now. Send again in a moment.",
+  tutor_refused: "The tutor declined to answer. Try rephrasing your message.",
+  internal_error: "The proxy hit an unexpected error. Send again.",
+  network_error: "Can't reach the proxy. Is the backend running on port 4000?",
+} as const satisfies Record<ChatErrorCode, string>
+
+// Returns the toast text for a code. An unknown code gets the internal_error text.
+export function toastTextFor(code: string): string {
+  return Object.hasOwn(TOAST_TEXT, code)
+    ? TOAST_TEXT[code as ChatErrorCode]
+    : TOAST_TEXT.internal_error
+}
