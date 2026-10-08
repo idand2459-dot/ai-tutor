@@ -6,62 +6,13 @@ import {
   TutorRefusedError,
   createChatService,
   toAnthropicMessages,
-  type MessagesClient,
-  type UpstreamStream
+  type MessagesClient
 } from '../../src/lib/chat.service.js'
 import { loadConfig } from '../../src/lib/config.js'
 import { SYSTEM_PROMPT } from '../../src/lib/system-prompt.js'
+import { fakeClient, fakeStream, otherEvent, stopWith, textDelta } from '../helpers/fake-anthropic.js'
 
 const MODEL = 'test-model'
-
-// Event builders. Casts keep fixtures minimal; the service reads only these fields.
-function textDelta(text: string): Anthropic.MessageStreamEvent {
-  return { type: 'content_block_delta', index: 0, delta: { type: 'text_delta', text } } as Anthropic.MessageStreamEvent
-}
-
-function stopWith(stopReason: Anthropic.StopReason): Anthropic.MessageStreamEvent {
-  return { type: 'message_delta', delta: { stop_reason: stopReason, stop_sequence: null } } as Anthropic.MessageStreamEvent
-}
-
-function otherEvent(type: 'message_start' | 'content_block_start' | 'content_block_stop' | 'message_stop'): Anthropic.MessageStreamEvent {
-  return { type } as Anthropic.MessageStreamEvent
-}
-
-// A fake upstream that replays `events`, then throws `failWith` if given.
-// After abort() it throws APIUserAbortError, like the SDK's MessageStream.
-function fakeStream(events: Anthropic.MessageStreamEvent[], failWith?: Error) {
-  const stream = {
-    abortCalls: 0,
-    abort() {
-      stream.abortCalls++
-    },
-    async *[Symbol.asyncIterator]() {
-      for (const event of events) {
-        if (stream.abortCalls > 0) {
-          throw new Anthropic.APIUserAbortError()
-        }
-        yield event
-      }
-      if (failWith) {
-        throw failWith
-      }
-    }
-  }
-  return stream
-}
-
-function fakeClient(stream: UpstreamStream = fakeStream([])) {
-  const requests: Anthropic.MessageStreamParams[] = []
-  const client: MessagesClient = {
-    messages: {
-      stream(params) {
-        requests.push(params)
-        return stream
-      }
-    }
-  }
-  return { client, requests }
-}
 
 async function collect(text: AsyncIterable<string>) {
   const pieces: string[] = []
