@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import {
   MAX_CONTENT_LENGTH,
@@ -58,6 +59,13 @@ describe('validateChatRequest', () => {
       const result = validateChatRequest({ messages: alternatingChat(MAX_MESSAGES - 1) })
 
       expect(result.success).toBe(true)
+    })
+
+    it('accepts the manual smoke-test fixture', () => {
+      // The body that the plan's manual curl.exe smoke test sends. Keeps it in sync with the contract.
+      const fixture: unknown = JSON.parse(readFileSync(new URL('../fixtures/smoke-chat.json', import.meta.url), 'utf8'))
+
+      expect(validateChatRequest(fixture).success).toBe(true)
     })
   })
 
