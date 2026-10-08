@@ -18,7 +18,7 @@ const components: Components = {
 
 export function TutorMarkdown({ content }: { content: string }) {
   return (
-    <div className="prose prose-zinc dark:prose-invert max-w-chat prose-a:text-accent">
+    <div className="prose prose-zinc dark:prose-invert max-w-chat prose-a:text-accent prose-code:before:content-none prose-code:after:content-none">
       <Markdown
         remarkPlugins={[remarkGfm]}
         disallowedElements={disallowedElements}
