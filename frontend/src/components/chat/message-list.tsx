@@ -26,7 +26,7 @@ export function MessageList({ messages, status }: MessageListProps) {
       role="log"
       aria-label="Chat"
       aria-busy={status !== "idle"}
-      className="flex flex-1 flex-col gap-4 overflow-y-auto py-4"
+      className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto py-4"
     >
       {messages.length === 0 ? (
         <div className="m-auto flex max-w-md flex-col items-center gap-3 px-gutter text-center text-muted">
