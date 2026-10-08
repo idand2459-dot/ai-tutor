@@ -95,8 +95,8 @@ describe('POST /api/chat', () => {
       ['a timeout', new Anthropic.APIConnectionTimeoutError({ message: 'provider-secret-detail' }), 502, 'upstream_unavailable'],
       ['an upstream 500', upstreamError(500), 502, 'upstream_unavailable'],
       ['an upstream 529 overload', upstreamError(529), 502, 'upstream_unavailable'],
-      ['an upstream 400', upstreamError(400), 502, 'upstream_unavailable'],
       ['a rate limit', upstreamError(429), 429, 'upstream_rate_limited'],
+      ['an upstream 400 bad request', upstreamError(400), 500, 'proxy_misconfigured'],
       ['a rejected API key', upstreamError(401), 500, 'proxy_misconfigured'],
       ['a forbidden API key', upstreamError(403), 500, 'proxy_misconfigured'],
       ['a non-SDK error', new Error('provider-secret-detail'), 500, 'internal_error']
@@ -111,6 +111,15 @@ describe('POST /api/chat', () => {
       expect(response.body).toEqual(errorShape(code))
       expect(response.text).not.toContain('provider-secret-detail')
       expect(logs).toEqual([expect.objectContaining({ requestId: TEST_REQUEST_ID, code, phase: 'before_stream' })])
+    })
+
+    it('logs an upstream 400 as an error, since it needs an operator fix', async () => {
+      const { client } = fakeClient(fakeStream([], upstreamError(400)))
+      const { app, logs } = createTestApp(client)
+
+      await request(app).post('/api/chat').send(validBody)
+
+      expect(logs).toEqual([expect.objectContaining({ level: 'error', code: 'proxy_misconfigured', upstreamError: 'BadRequestError' })])
     })
 
     it('reports a refusal that arrives first as an SSE error event', async () => {

@@ -38,7 +38,13 @@ export function mapChatError(error: unknown): MappedError {
   if (error instanceof Anthropic.RateLimitError) {
     return { status: 429, code: 'upstream_rate_limited', message: MESSAGES.upstream_rate_limited }
   }
-  if (error instanceof Anthropic.AuthenticationError || error instanceof Anthropic.PermissionDeniedError) {
+  // A 400 from Anthropic means the proxy built a request its setup can't serve (e.g. a bad
+  // ANTHROPIC_MODEL); the user's input was already validated, so retrying will not help.
+  if (
+    error instanceof Anthropic.AuthenticationError ||
+    error instanceof Anthropic.PermissionDeniedError ||
+    error instanceof Anthropic.BadRequestError
+  ) {
     return { status: 500, code: 'proxy_misconfigured', message: MESSAGES.proxy_misconfigured }
   }
   if (error instanceof Anthropic.APIConnectionError || error instanceof Anthropic.APIError) {
@@ -55,8 +61,9 @@ function toStreamError(mapped: MappedError): MappedError {
   return { ...mapped, code: 'upstream_unavailable', message: MESSAGES.upstream_unavailable }
 }
 
+// The SDK's error classes leave `name` as "Error", so use the class name instead.
 function upstreamErrorName(error: unknown) {
-  return error instanceof Error ? error.name : typeof error
+  return error instanceof Error ? error.constructor.name : typeof error
 }
 
 const consoleLog: ChatLog = entry => {
