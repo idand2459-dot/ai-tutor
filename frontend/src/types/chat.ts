@@ -8,6 +8,10 @@ export type Message = {
   content: string
 }
 
+// "sending": the request is out and no reply text has arrived yet.
+// "streaming": at least one delta has arrived.
+export type ChatStatus = "idle" | "sending" | "streaming"
+
 // A successful event read from the proxy's SSE stream. An SSE `error` event is
 // not a ChatEvent: the chat client raises it as a ChatError instead.
 export type ChatEvent =
