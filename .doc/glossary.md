@@ -21,6 +21,8 @@
 - system prompt — the baseline instruction set governing the AI tutor behavior. Not persona or instructions.
 
 - correct-option — the designated right choice among options in a quiz question. Not correct-answer.
+
+- draft — the text the user is typing in the input that has not been sent yet. Not input text, pending message, or unsent message.
 ## Naming Alignment
 - Keep this glossary aligned with naming decisions in `../.claude/rules/naming.md`.
 - If a new domain term is introduced, add it here before broad usage.

@@ -4,12 +4,13 @@
 - Provide a concise architecture reference for service boundaries, ownership, and major flows.
 
 ## System Overview
-- The runtime is one process: the `proxy` in `backend/` (Node.js 22.12+, TypeScript, ESM, Express 5).
+- In development the runtime is two processes: the `proxy` in `backend/` (Node.js 22.12+,
+  TypeScript, ESM, Express 5) and the Next.js frontend in `frontend/`.
 - The `proxy` receives a `chat` from the browser, adds the `system prompt`, calls the Anthropic
   Messages API with streaming, and relays the `tutor` reply to the browser as Server-Sent Events (SSE).
 - The `proxy` is the only component that holds `ANTHROPIC_API_KEY`.
 - The `proxy` is stateless. There is no database; the browser sends the whole `chat` on every request.
-- `frontend/` does not exist in the repository yet.
+- `frontend/` is the browser UI: a Next.js app that calls the `proxy` directly. See [Frontend](#frontend).
 
 ## Primary Components
 All paths are under `backend/src/`.
@@ -40,6 +41,95 @@ All paths are under `backend/src/`.
 6. If the client disconnects before the reply ends, the route calls `abort()` and stops writing.
 
 `GET /api/health` returns `{ "status": "ok" }` without calling Anthropic.
+
+## Frontend
+`frontend/` is a Next.js 16 app (App Router, React 19, TypeScript, Tailwind CSS v4 via
+`@tailwindcss/turbopack`). It has one page, no API routes, and no server-side fetch: the browser
+calls the `proxy` directly. The `chat` lives only in React state for the page's lifetime.
+
+### Components
+All paths are under `frontend/src/`.
+
+| File | Responsibility |
+|---|---|
+| `app/page.tsx` | Server shell that renders `ChatView`. |
+| `app/layout.tsx` | Fonts, metadata, and the `sonner` `<Toaster />`. |
+| `app/globals.css` | The only CSS file. Design tokens in `:root` (light and dark), exposed with `@theme inline`; the typography plugin. |
+| `components/chat/chat-view.tsx` | Client component. Calls `useChat`, computes `canSend`, and lays out the header, `MessageList`, and `MessageInput`. |
+| `components/chat/message-list.tsx` | `role="log"`, `aria-busy` while a reply is pending, the empty state, and auto-scroll to the newest `message`. |
+| `components/chat/message-item.tsx` | One `message`. `user` content as plain text; `tutor` content through `TutorMarkdown`, or a loading indicator while the last `tutor` message is still empty. |
+| `components/chat/message-input.tsx` | Presentational textarea, send button, character counter, and the full-`chat` notice. Enter sends, Shift+Enter adds a line, and Enter during an IME composition does nothing. |
+| `components/chat/tutor-markdown.tsx` | Renders `tutor` content as Markdown (see Markdown safety). |
+| `hooks/use-chat.ts` | `useChat()` → `{ messages, status, draft, setDraft, send, isChatFull }`. A reducer moves `status` through `idle → sending → streaming → idle`. |
+| `lib/chat.client.ts` | `streamChat(messages, { signal })`: the request to the `proxy` and SSE parsing. |
+| `lib/chat-error.ts` | `ChatError { code, requestId? }`, `ChatErrorCode`, and `toastTextFor(code)`. |
+| `lib/chat-limit.ts` | The client-side limits and `canSend(chat, draft)`. |
+| `lib/config.ts` | `PROXY_URL`. |
+| `types/chat.ts` | `ChatRole`, `Message`, `ChatStatus`, `ChatEvent`. |
+
+### Request and stream flow
+1. `send()` runs only while `status` is `idle` and `canSend(messages, draft)` is true. It adds the
+   `user` message and an empty `tutor` message, clears the draft, and sets `status` to `sending`.
+2. `streamChat` sends `POST {PROXY_URL}/api/chat` with the earlier `chat` plus the new `user`
+   message, as `{ messages: [{ role, content }] }`. The client-only `id` is not sent, and `content`
+   is sent exactly as typed.
+3. A `200 text/event-stream` body is read with `fetch` and
+   `body.pipeThrough(new TextDecoderStream()).pipeThrough(new EventSourceParserStream())`
+   (`eventsource-parser`). Each `delta` is appended to the last `tutor` message, and the first one
+   sets `status` to `streaming`. `done` returns `status` to `idle`.
+4. Every failure becomes a `ChatError`:
+   - a non-2xx response → the `error.code` and `requestId` from the standard error shape (an
+     unknown code is kept as is; a body that is not that shape → `internal_error`);
+   - a 2xx response that is not an event stream → `internal_error`;
+   - an SSE `error` event → its code, including `tutor_refused` before any `delta`;
+   - a stream that closes without `done` or `error` → `upstream_unavailable`;
+   - a rejected `fetch`, or a body read that fails mid-stream → `network_error` (client only);
+   - `done` with no reply text → `internal_error`.
+5. On any failure, the `chat` is restored to exactly what it was before sending (the unanswered
+   `user` message and any partial `tutor` message are removed), the sent text returns to the draft
+   only if the draft is still empty, and one toast is shown.
+6. Each send creates its own `AbortController`. Unmounting aborts the request in flight; an aborted
+   request ends quietly, with no toast. There are no retries.
+
+### Configuration
+- `NEXT_PUBLIC_PROXY_URL` sets the `proxy` base URL. It falls back to `http://127.0.0.1:4000` when
+  unset or blank, and trailing slashes are removed. It is public (inlined into the browser bundle)
+  and never holds a secret. Template: `frontend/.env.example`.
+- The backend's CORS matches `FRONTEND_URL` exactly, so the app must be opened at
+  `http://localhost:3000`.
+
+### Client-side limits
+These mirror the `proxy` validation, so a valid UI never sends a request that returns `400`.
+- A send is allowed only while the `chat` has at most 48 `message` items, so a request has at most 49.
+  After that, the textarea is disabled and a notice says to reload the page to start a new `chat`.
+- A draft must be non-empty after trimming and at most 8,000 characters, measured before trimming
+  as the `proxy` does. The counter turns to the `danger` token and announces "Message is too long"
+  over the limit.
+
+### Error UX
+- One `sonner` toast per failure. Its text comes only from the table in `src/lib/chat-error.ts`
+  (one line per contract code, plus `network_error`); an unknown code gets the `internal_error`
+  text. The server's `error.message` is never shown.
+- When present, the `requestId` appears in the toast description as `Request ID: <id>`.
+- Toasts never contain `message` content.
+
+### Markdown safety
+`tutor` output is untrusted. `TutorMarkdown` uses `react-markdown` with `remark-gfm`:
+- No `dangerouslySetInnerHTML` and no raw-HTML plugin. Raw HTML in a reply is shown as literal text.
+- `img` is a disallowed element, so images (Markdown or HTML) are dropped and the browser never
+  calls a third-party host.
+- The default `urlTransform` stays, so a `javascript:` link gets no such `href`. Links open with
+  `target="_blank"` and `rel="noopener noreferrer"`.
+- Code renders as plain `<pre><code>` styled by `@tailwindcss/typography`, without syntax highlighting.
+
+### Testing
+- Vitest + React Testing Library + jsdom, in `frontend/tests/unit/` (`cd frontend && npm test`).
+  The tests never call the network.
+- `tests/unit/helpers/controlled-sse-response.ts` returns a `Response` whose SSE body the test
+  writes by hand (`push`, `close`, `error`), so streaming tests release each chunk explicitly
+  instead of relying on timers.
+- `tests/unit/chat-view.test.tsx` renders `ChatView` with `<Toaster />` and a stubbed `fetch`. It
+  covers streaming (AC02), failures (AC03), and that every request goes to `PROXY_URL` only (AC06).
 
 ## Auth
 - There is no user authentication; accounts are out of product scope.
