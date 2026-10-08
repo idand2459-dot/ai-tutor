@@ -89,7 +89,14 @@ there is no `.orchestrate/api-contract.yaml`. Source plan: `.plan/001-2026-10-08
 }
 ```
 
-`error.details` is optional and appears mainly on `validation_error`. Error bodies never
+`error.details` appears only on `validation_error`, in one of two shapes:
+- The body breaks a validation rule: `{ "issues": [{ "path": "messages.1.role", "message": "must be \"user\" or \"tutor\"" }] }`.
+  `path` is the dotted path to the invalid field, or `(body)` when the body is not a JSON object.
+  `message` describes the problem and never repeats the user's content.
+- The body could not be read: `{ "reason": "malformed_json" | "body_too_large" | "unreadable_body" }`.
+  `body_too_large` means over 2 MB. `unreadable_body` covers an unsupported charset or encoding.
+
+Error bodies never
 contain provider payloads, stack traces, or secrets.
 
 ### `GET /api/health`
@@ -118,6 +125,8 @@ Validation rules — any violation returns `400 validation_error`:
 - `role` is `"user"` or `"tutor"`.
 - `content` is a string, non-empty after trimming, at most 8,000 characters.
 - The first and the last `message` are from `user`, and roles alternate.
+  So a valid `chat` always has an odd number of `message` items, and the longest valid `chat`
+  has 49, not 50.
 
 Success: `200 text/event-stream`. The stream is a sequence of SSE events, each with a JSON `data` line:
 
@@ -160,5 +169,3 @@ Error codes that can arrive in an SSE `error` event:
 
 ### Other routes
 Any other route returns `404 not_found` in the standard error shape.
-
-

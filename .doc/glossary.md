@@ -20,7 +20,7 @@
 
 - system prompt — the baseline instruction set governing the AI tutor behavior. Not persona or instructions.
 
--correct-option — the designated right choice among options in a quiz question. Not correct-answer.
+- correct-option — the designated right choice among options in a quiz question. Not correct-answer.
 ## Naming Alignment
 - Keep this glossary aligned with naming decisions in `../.claude/rules/naming.md`.
 - If a new domain term is introduced, add it here before broad usage.
