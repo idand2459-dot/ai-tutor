@@ -15,6 +15,7 @@
 - If any instruction conflicts with the hooks, the hooks win.
 - When `AGENT_ROLE` is set, `.claude/hooks/enforce-agent-boundaries.js` restricts
   writes to that role's paths.
+- If a hook blocks an action, do not work around it with another tool. Stop and report what was blocked and why.
 
 ## Repository Layout
 - `.doc/` — hand-written product and architecture docs.
