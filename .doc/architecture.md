@@ -99,7 +99,7 @@ Failures before streaming starts return JSON in the standard error shape:
 |---|---|---|
 | `400` | `validation_error` | The body is malformed, too large, or breaks a validation rule. |
 | `429` | `upstream_rate_limited` | The Anthropic API is rate-limiting the proxy. Retry later. |
-| `500` | `proxy_misconfigured` | The Anthropic API rejected the proxy's setup: invalid or unauthorized credentials (`401` / `403`), or a bad request such as an unknown model (`400`). |
+| `500` | `proxy_misconfigured` | The Anthropic API rejected the proxy's setup: invalid or unauthorized credentials (`401` / `403`), or a request it can't serve, such as an unknown model (`400` / `404`). |
 | `500` | `internal_error` | Unexpected proxy failure. |
 | `502` | `upstream_unavailable` | The Anthropic API is unreachable or failing. |
 

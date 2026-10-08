@@ -38,12 +38,13 @@ export function mapChatError(error: unknown): MappedError {
   if (error instanceof Anthropic.RateLimitError) {
     return { status: 429, code: 'upstream_rate_limited', message: MESSAGES.upstream_rate_limited }
   }
-  // A 400 from Anthropic means the proxy built a request its setup can't serve (e.g. a bad
+  // A 400 or 404 from Anthropic means the proxy built a request its setup can't serve (e.g. a bad
   // ANTHROPIC_MODEL); the user's input was already validated, so retrying will not help.
   if (
     error instanceof Anthropic.AuthenticationError ||
     error instanceof Anthropic.PermissionDeniedError ||
-    error instanceof Anthropic.BadRequestError
+    error instanceof Anthropic.BadRequestError ||
+    error instanceof Anthropic.NotFoundError
   ) {
     return { status: 500, code: 'proxy_misconfigured', message: MESSAGES.proxy_misconfigured }
   }

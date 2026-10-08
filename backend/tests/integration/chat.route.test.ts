@@ -122,6 +122,19 @@ describe('POST /api/chat', () => {
       expect(logs).toEqual([expect.objectContaining({ level: 'error', code: 'proxy_misconfigured', upstreamError: 'BadRequestError' })])
     })
 
+    it('maps an upstream 404 (unknown model) to 500 proxy_misconfigured without leaking the provider message', async () => {
+      const { client } = fakeClient(fakeStream([], upstreamError(404, 'model: not-a-real-model')))
+      const { app, logs } = createTestApp(client)
+
+      const response = await request(app).post('/api/chat').send(validBody)
+
+      expect(response.status).toBe(500)
+      expect(response.headers['content-type']).toMatch(/^application\/json/)
+      expect(response.body).toEqual(errorShape('proxy_misconfigured'))
+      expect(response.text).not.toContain('not-a-real-model')
+      expect(logs).toEqual([expect.objectContaining({ level: 'error', code: 'proxy_misconfigured', upstreamError: 'NotFoundError' })])
+    })
+
     it('reports a refusal that arrives first as an SSE error event', async () => {
       const { client } = fakeClient(fakeStream([stopWith('refusal')]))
       const { app } = createTestApp(client)
@@ -158,6 +171,20 @@ describe('POST /api/chat', () => {
       const response = await request(app).post('/api/chat').send(validBody)
 
       expect(parseSse(response.text).at(-1)).toEqual({ event: 'error', data: errorShape('upstream_unavailable') })
+    })
+
+    it('reports a mid-stream 404 as upstream_unavailable without leaking the provider message', async () => {
+      const { client } = fakeClient(fakeStream([textDelta('one')], upstreamError(404, 'model: not-a-real-model')))
+      const { app } = createTestApp(client)
+
+      const response = await request(app).post('/api/chat').send(validBody)
+
+      expect(response.status).toBe(200)
+      expect(parseSse(response.text)).toEqual([
+        { event: 'delta', data: { text: 'one' } },
+        { event: 'error', data: errorShape('upstream_unavailable') }
+      ])
+      expect(response.text).not.toContain('not-a-real-model')
     })
 
     it('reports a refusal after some text as a tutor_refused error event', async () => {
