@@ -17,7 +17,7 @@ and do not use inline styles.
 - Use nested CSS only where it improves scoping and readability.
 
 ## Chat UI
-- Render `message` content as Markdown, with code in fenced, syntax-highlighted blocks.
+- Render `message` content as Markdown, with code in fenced blocks. Highlight fenced code once a highlighting library is added; until then render it as plain `<pre><code>` styled by Tailwind typography.
 - Treat `tutor` output as untrusted text. Never pass it to `dangerouslySetInnerHTML`.
 - While the `tutor` is streaming, show a loading state and disable sending a new `message`.
 - On an API failure, show a `sonner` toast and keep the `chat` and the typed input intact.

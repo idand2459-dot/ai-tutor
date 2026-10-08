@@ -33,10 +33,10 @@ Standard AI coding tools instantly provide complete solutions and full code bloc
 ## Acceptance Criteria
 Each criterion must be provable by a test.
 
-- AC01 — Quality gates: `npx tsc --noEmit` is clean and the unit and e2e suites pass.
-- AC02 — Chat streaming and loading state: when the user sends a message, a loading indicator appears immediately, and the response is rendered incrementally (at least two partial updates before completion). Verified by an e2e test.
-- AC03 — Error resilience: when the Anthropic API fails or the network errors, a clear user-friendly message is shown and the interface stays usable (no crash, input still works). Verified by an e2e test with a mocked network failure.
+- AC01 — Quality gates: `npx tsc --noEmit` is clean and the unit and automated test suites pass.
+- AC02 — Chat streaming and loading state: when the user sends a message, a loading indicator appears immediately, and the response is rendered incrementally (at least two partial updates before completion). Verified by an automated test.
+- AC03 — Error resilience: when the Anthropic API fails or the network errors, a clear user-friendly message is shown and the interface stays usable (no crash, input still works). Verified by an automated test with a mocked network failure.
 - AC04 — Quiz generation and schema: when the user clicks "Generate Quiz", the system produces exactly 5 questions, each with 4 options and exactly 1 correct option. If the model returns malformed output, the system retries once; if the retry also fails, a clear error is shown. Verified by unit tests against mocked model responses (valid, malformed then valid, malformed twice).
 - AC05 — Tutor system prompt enforcement: every chat request sent to the Anthropic API includes a system prompt instructing the model to guide the user with questions rather than provide the full solution, unless the user explicitly asks for it. Verified by a unit test asserting the request payload.
-- AC06 — API key security: the Anthropic API key exists only in the backend environment. A search of the built client bundle finds no trace of it, and in e2e tests the browser sends requests only to the local proxy, never to `api.anthropic.com`. Verified by a build-output check and e2e network assertions.
+- AC06 — API key security: the Anthropic API key exists only in the backend environment. A search of the built client bundle finds no trace of it, and in automated tests the browser sends requests only to the local proxy, never to `api.anthropic.com`. Verified by a build-output check and automated network assertions.
 - AC07 — Quiz button state: while the chat has no messages, the "Generate Quiz" button is disabled; after the first exchange it is enabled. Verified by an e2e test.
