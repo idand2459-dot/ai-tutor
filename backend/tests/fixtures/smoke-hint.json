@@ -1,0 +1,1 @@
+{"messages":[{"role":"user","content":"why is my loop infinite? for (let i = 0; i < 10; ) { console.log(i) }"}]}

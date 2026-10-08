@@ -61,9 +61,12 @@ describe('validateChatRequest', () => {
       expect(result.success).toBe(true)
     })
 
-    it('accepts the manual smoke-test fixture', () => {
-      // The body that the plan's manual curl.exe smoke test sends. Keeps it in sync with the contract.
-      const fixture: unknown = JSON.parse(readFileSync(new URL('../fixtures/smoke-chat.json', import.meta.url), 'utf8'))
+    it.each([
+      ['smoke-chat.json'],
+      ['smoke-hint.json']
+    ])('accepts the manual smoke-test fixture %s', fileName => {
+      // Bodies that the manual curl.exe smoke tests send. Keeps them in sync with the contract.
+      const fixture: unknown = JSON.parse(readFileSync(new URL(`../fixtures/${fileName}`, import.meta.url), 'utf8'))
 
       expect(validateChatRequest(fixture).success).toBe(true)
     })
