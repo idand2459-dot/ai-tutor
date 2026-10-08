@@ -83,6 +83,7 @@ export function createApp({ client, config, log }: AppOptions) {
       level: 'error',
       requestId: getRequestId(res),
       operation: 'http',
+      status: 500,
       code: 'internal_error',
       errorType: error instanceof Error ? error.constructor.name : typeof error
     }))

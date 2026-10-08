@@ -8,6 +8,8 @@ export type ChatLogEntry = {
   level: 'warn' | 'error'
   requestId: string
   operation: 'chat'
+  // The HTTP status the client received: 200 once the stream has started.
+  status: number
   code: ErrorCode
   phase: 'before_stream' | 'mid_stream'
   upstreamError: string
@@ -108,11 +110,12 @@ export function createChatRouter({ chatService, log = consoleLog }: { chatServic
       }
     })
 
-    const logFailure = (error: unknown, code: ErrorCode, phase: ChatLogEntry['phase']) => {
+    const logFailure = (error: unknown, status: number, code: ErrorCode, phase: ChatLogEntry['phase']) => {
       log({
         level: code === 'tutor_refused' || code === 'upstream_rate_limited' ? 'warn' : 'error',
         requestId,
         operation: 'chat',
+        status,
         code,
         phase,
         upstreamError: upstreamErrorName(error)
@@ -131,7 +134,7 @@ export function createChatRouter({ chatService, log = consoleLog }: { chatServic
         return
       }
       const mapped = mapChatError(error)
-      logFailure(error, mapped.code, 'before_stream')
+      logFailure(error, mapped.status, mapped.code, 'before_stream')
       if (mapped.code !== 'tutor_refused') {
         sendError(res, mapped.status, mapped.code, mapped.message)
         return
@@ -161,7 +164,7 @@ export function createChatRouter({ chatService, log = consoleLog }: { chatServic
     } catch (error) {
       if (!clientGone) {
         const mapped = toStreamError(mapChatError(error))
-        logFailure(error, mapped.code, 'mid_stream')
+        logFailure(error, 200, mapped.code, 'mid_stream')
         writeEvent(res, 'error', errorBody(res, mapped.code, mapped.message))
       }
     }

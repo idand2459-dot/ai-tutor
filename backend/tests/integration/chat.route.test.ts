@@ -110,7 +110,7 @@ describe('POST /api/chat', () => {
       expect(response.headers['content-type']).toMatch(/^application\/json/)
       expect(response.body).toEqual(errorShape(code))
       expect(response.text).not.toContain('provider-secret-detail')
-      expect(logs).toEqual([expect.objectContaining({ requestId: TEST_REQUEST_ID, code, phase: 'before_stream' })])
+      expect(logs).toEqual([expect.objectContaining({ requestId: TEST_REQUEST_ID, operation: 'chat', status, code, phase: 'before_stream' })])
     })
 
     it('logs an upstream 400 as an error, since it needs an operator fix', async () => {
@@ -161,7 +161,12 @@ describe('POST /api/chat', () => {
         { event: 'error', data: errorShape('upstream_unavailable') }
       ])
       expect(response.text).not.toContain('provider-secret-detail')
-      expect(logs).toEqual([expect.objectContaining({ code: 'upstream_unavailable', phase: 'mid_stream' })])
+      expect(logs).toEqual([expect.objectContaining({
+        status: 200,
+        code: 'upstream_unavailable',
+        phase: 'mid_stream',
+        upstreamError: 'APIConnectionError'
+      })])
     })
 
     it('reports a mid-stream rate limit as upstream_unavailable, the only upstream code allowed in the stream', async () => {
@@ -201,6 +206,33 @@ describe('POST /api/chat', () => {
   })
 
   describe('logging', () => {
+    it('logs nothing for a successful reply', async () => {
+      const { client } = fakeClient(fakeStream([textDelta('hi'), stopWith('end_turn')]))
+      const { app, logs } = createTestApp(client)
+
+      await request(app).post('/api/chat').send(validBody)
+
+      expect(logs).toEqual([])
+    })
+
+    it('logs exactly the structured fields, with no content, headers, or provider message', async () => {
+      const { client } = fakeClient(fakeStream([], upstreamError(500)))
+      const { app, logs } = createTestApp(client)
+
+      await request(app).post('/api/chat').set('Authorization', 'Bearer header-secret').send(validBody)
+
+      expect(logs).toEqual([{
+        level: 'error',
+        requestId: TEST_REQUEST_ID,
+        operation: 'chat',
+        status: 502,
+        code: 'upstream_unavailable',
+        phase: 'before_stream',
+        upstreamError: 'InternalServerError'
+      }])
+      expect(JSON.stringify(logs)).not.toMatch(/header-secret|provider-secret-detail/)
+    })
+
     it('never logs message content', async () => {
       const { client } = fakeClient(fakeStream([], upstreamError(500)))
       const { app, logs } = createTestApp(client)
