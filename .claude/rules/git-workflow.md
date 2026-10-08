@@ -1,9 +1,8 @@
 # Git Workflow
 
 ## Approval gates — no exceptions
-- **Never commit** until the user explicitly approves committing.
-- **Never merge** a branch without explicit approval.
-- **Never push a release tag** without explicit approval.
+- Never run `git commit`, `git merge`, `git push`, or `git tag` yourself. The guardrail hook blocks them.
+- Prepare the work instead: stage changes with `git add` and propose the commit message. The user runs the command.
 
 ## Branches
 - Do implementation work on a dedicated branch, never on `main`.
@@ -16,12 +15,9 @@
   - `docs/<topic>` — documentation only
 
 ## Commits
-- Imperative subject, concise and action-oriented: `add org validation rule`.
+- Imperative subject, concise and action-oriented: `add quiz schema validation`.
 - One intent per commit. Do not bundle unrelated changes.
 
 ## Merges
 - At least one review pass before merge when others are involved.
 - Resolve open comments and questions before merging.
-
-Release tagging and version numbers are a separate procedure — see the
-`cutting-a-release` skill.
