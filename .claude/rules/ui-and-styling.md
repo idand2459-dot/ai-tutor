@@ -6,7 +6,7 @@
   across features.
 
 ## Styling engine
-`frontend/` is styled with **Tailwind CSS v4** (via `@tailwindcss/postcss`),
+`frontend/` is styled with **Tailwind CSS v4** (via `@tailwindcss/turbopack`, wired through `turbopack.rules` in `next.config.ts`),
 with a single `globals.css`. Use utility classes. Do not add new `.css` files
 and do not use inline styles.
 

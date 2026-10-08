@@ -18,7 +18,7 @@ write outside your allowed paths — do not try to work around it.
 
 ## Stack
 - Next.js 16 (App Router) + React 19 + TypeScript
-- Tailwind CSS v4 (via `@tailwindcss/postcss`) — utility classes, no new CSS files
+- Tailwind CSS v4 (via `@tailwindcss/turbopack`, wired through `turbopack.rules` in `next.config.ts`) — utility classes, no new CSS files
 - `lucide-react` for icons, `sonner` for toasts (see `.claude/rules/ui-and-styling.md`)
 - Mock data layer: `frontend/src/mock/seed.ts` + React `useState` — **there is no backend**
 - Vitest + React Testing Library (unit), Playwright (e2e)
