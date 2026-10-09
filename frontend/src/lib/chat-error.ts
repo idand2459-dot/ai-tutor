@@ -1,12 +1,13 @@
-// The six `error.code` values in the proxy contract, plus `network_error`, which
+// The `error.code` values in the proxy contract, plus `network_error`, which
 // exists only in the browser: the request never reached the proxy, or the
-// connection to it broke.
+// connection to it broke. `quiz_malformed` comes only from POST /api/quiz.
 export type ChatErrorCode =
   | "validation_error"
   | "upstream_rate_limited"
   | "proxy_misconfigured"
   | "upstream_unavailable"
   | "tutor_refused"
+  | "quiz_malformed"
   | "internal_error"
   | "network_error"
 
@@ -26,7 +27,10 @@ export class ChatError extends Error {
 
 // The only text a chat failure shows the user. The server's `error.message` is
 // never shown, so the wording stays stable and testable. `satisfies` makes a
-// missing code a compile error.
+// missing code a compile error. A chat request never gets `quiz_malformed`, so it
+// has no chat text and keeps the internal_error fallback (see quiz-error.ts).
+type ChatToastCode = Exclude<ChatErrorCode, "quiz_malformed">
+
 const TOAST_TEXT = {
   validation_error: "Message couldn't be sent. Check its length and try again.",
   upstream_rate_limited: "The tutor is busy. Wait a moment, then send again.",
@@ -35,11 +39,11 @@ const TOAST_TEXT = {
   tutor_refused: "The tutor declined to answer. Try rephrasing your message.",
   internal_error: "The proxy hit an unexpected error. Send again.",
   network_error: "Can't reach the proxy. Is the backend running on port 4000?",
-} as const satisfies Record<ChatErrorCode, string>
+} as const satisfies Record<ChatToastCode, string>
 
 // Returns the toast text for a code. An unknown code gets the internal_error text.
 export function toastTextFor(code: string): string {
   return Object.hasOwn(TOAST_TEXT, code)
-    ? TOAST_TEXT[code as ChatErrorCode]
+    ? TOAST_TEXT[code as ChatToastCode]
     : TOAST_TEXT.internal_error
 }

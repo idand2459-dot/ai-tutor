@@ -6,7 +6,7 @@ export const MAX_CONTENT_LENGTH = 8000
 export const MESSAGE_ROLES = ['user', 'tutor'] as const
 
 // Messages name the rule, never the received value: content can be long, and it is user input.
-const messageSchema = z.object({
+export const messageSchema = z.object({
   role: z.enum(MESSAGE_ROLES, { error: 'must be "user" or "tutor"' }),
   content: z
     .string({ error: 'must be a string' })

@@ -1,7 +1,8 @@
 # AI Tutor backend
 
 The `proxy` between the browser and the Anthropic API. It adds the `tutor` `system prompt`
-and streams the reply as Server-Sent Events. The API key stays here.
+and streams the reply as Server-Sent Events. It also builds a `quiz` from the `chat` with one
+non-streaming call. The API key stays here.
 
 Architecture and the full API contract: [`.doc/architecture.md`](../.doc/architecture.md).
 
@@ -27,10 +28,13 @@ Copy-Item .env.example .env
 | `ANTHROPIC_API_KEY` | yes | — | Anthropic API key. Used only by the `proxy`. |
 | `FRONTEND_URL` | yes | — | The only origin allowed by CORS. |
 | `PORT` | no | `4000` | Port on `127.0.0.1`. |
-| `ANTHROPIC_MODEL` | no | `claude-haiku-4-5` | Model for `tutor` replies. |
+| `ANTHROPIC_MODEL` | no | `claude-haiku-4-5` | Model for `tutor` replies and for the `quiz`. |
 
 `.env` is gitignored. Never commit it or paste its values anywhere. If a required variable is
 missing or invalid, the server prints which one and exits with code 1.
+
+`ANTHROPIC_MODEL` also changes the `quiz` model; both routes use the same model, with no code
+change. In manual runs, `quiz` quality was better on `claude-sonnet-5-5` than on the default.
 
 ## Run
 | Command | What it does |
@@ -48,6 +52,7 @@ The server listens on `http://127.0.0.1:4000` by default.
 |---|---|
 | `GET /api/health` | Returns `200 { "status": "ok" }`. |
 | `POST /api/chat` | Takes `{ "messages": [{ "role": "user" \| "tutor", "content": string }] }` and streams the reply as SSE events `delta`, `done`, and `error`. |
+| `POST /api/quiz` | Takes the same body as `/api/chat`, but the last `message` must be from `tutor`. Returns `200 { "quiz": { "questions": [...] } }` with 5 questions of 4 options each, as one JSON response. |
 
 Any other route returns `404`. Error bodies use the standard error shape described in the API contract.
 
@@ -63,4 +68,16 @@ Send a `chat` from the manual test fixture and watch the reply stream:
 curl.exe -N -X POST http://127.0.0.1:4000/api/chat -H "Content-Type: application/json" --data-binary "@tests/fixtures/smoke-chat.json"
 ```
 
-This sends a real request to Anthropic and uses API credit.
+Build a `quiz` from the quiz fixture (a short `chat` about `for` and `while` loops):
+
+```powershell
+curl.exe -i -X POST http://127.0.0.1:4000/api/quiz -H "Content-Type: application/json" --data-binary "@tests/fixtures/smoke-quiz.json"
+```
+
+It returns `200` with 5 questions about the fixture's topic. Both commands send a real request to
+Anthropic and use API credit; one `quiz` request can make up to 2 model calls.
+
+## Known limitations
+The models sometimes return words glued together inside sentences (for example "countertoward"),
+mostly in the `quiz` `explanation`. It is not caused by this app, and the app does not repair the
+text. Details: Operational Concerns in [`.doc/architecture.md`](../.doc/architecture.md).

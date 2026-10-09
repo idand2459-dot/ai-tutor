@@ -1,4 +1,4 @@
-import type { Message } from "@/types/chat"
+import type { ChatStatus, Message } from "@/types/chat"
 
 // Limits mirror the proxy's request validation (see the API Contract in .doc/architecture.md).
 export const MAX_CONTENT_LENGTH = 8000
@@ -17,4 +17,12 @@ export function isDraftTooLong(draft: string): boolean {
 
 export function canSend(chat: readonly Message[], draft: string): boolean {
   return !isChatFull(chat) && draft.trim() !== "" && !isDraftTooLong(draft)
+}
+
+// A quiz needs at least one full exchange that has finished: the proxy rejects a
+// chat whose last message is not from `tutor`. Whether a quiz is already being
+// generated is the caller's check.
+export function canGenerateQuiz(chat: readonly Message[], status: ChatStatus): boolean {
+  const last = chat.at(-1)
+  return status === "idle" && chat.length >= 2 && last?.role === "tutor" && last.content.trim() !== ""
 }

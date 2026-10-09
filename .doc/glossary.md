@@ -20,7 +20,9 @@
 
 - system prompt — the baseline instruction set governing the AI tutor behavior. Not persona or instructions.
 
-- correct-option — the designated right choice among options in a quiz question. Not correct-answer.
+- correct option — the designated right choice among options in a quiz question (field name `correctOption`). Not correct-answer.
+
+- explanation — the short reason, shown after checking a quiz, why the correct option is right. Not rationale, hint, or feedback.
 
 - draft — the text the user is typing in the input that has not been sent yet. Not input text, pending message, or unsent message.
 ## Naming Alignment

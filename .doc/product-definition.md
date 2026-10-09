@@ -17,7 +17,7 @@ Standard AI coding tools instantly provide complete solutions and full code bloc
 ## Product Scope
 - In scope:
   - Interactive tutoring chat that guides users and prompts critical thinking.
-  - Quiz generation triggered by a dedicated "Generate Quiz" button in the chat, derived from the recent chat history. The button is disabled while the chat is empty.
+  - Quiz generation triggered by a dedicated "Generate Quiz" button in the chat, derived from the current chat. The button is disabled while the chat is empty.
   - Thin backend proxy between the browser and the Anthropic API, keeping the API key on the server and running locally for development and testing.
 - Out of scope:
   - User accounts, authentication and database persistence (progress tracking is deferred to a future version).
@@ -37,6 +37,6 @@ Each criterion must be provable by a test.
 - AC02 — Chat streaming and loading state: when the user sends a message, a loading indicator appears immediately, and the response is rendered incrementally (at least two partial updates before completion). Verified by an automated test.
 - AC03 — Error resilience: when the Anthropic API fails or the network errors, a clear user-friendly message is shown and the interface stays usable (no crash, input still works). Verified by an automated test with a mocked network failure.
 - AC04 — Quiz generation and schema: when the user clicks "Generate Quiz", the system produces exactly 5 questions, each with 4 options and exactly 1 correct option. If the model returns malformed output, the system retries once; if the retry also fails, a clear error is shown. Verified by unit tests against mocked model responses (valid, malformed then valid, malformed twice).
-- AC05 — Tutor system prompt enforcement: every chat request sent to the Anthropic API includes a system prompt instructing the model to guide the user with questions rather than provide the full solution, unless the user explicitly asks for it. Verified by a unit test asserting the request payload.
+- AC05 — Tutor system prompt enforcement: every chat request sent to the Anthropic API includes a system prompt instructing the model to guide the user with questions rather than provide the full solution, unless the user explicitly asks for it. Verified by a unit test asserting the request payload. Every quiz request includes the quiz system prompt, verified the same way.
 - AC06 — API key security: the Anthropic API key exists only in the backend environment. A search of the built client bundle finds no trace of it, and in automated tests the browser sends requests only to the local proxy, never to `api.anthropic.com`. Verified by a build-output check and automated network assertions.
-- AC07 — Quiz button state: while the chat has no messages, the "Generate Quiz" button is disabled; after the first exchange it is enabled. Verified by an e2e test.
+- AC07 — Quiz button state: while the chat has no messages, the "Generate Quiz" button is disabled; after the first exchange it is enabled. Verified by an automated component test.

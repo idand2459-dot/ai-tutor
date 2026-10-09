@@ -1,7 +1,8 @@
 # AI Tutor frontend
 
 The browser UI for the `chat`: a Next.js app that sends the `chat` to the `proxy` in `backend/`
-and renders the `tutor` reply as it streams. It never holds the Anthropic API key.
+and renders the `tutor` reply as it streams. It can also build a `quiz` from the `chat`. It never
+holds the Anthropic API key.
 
 Architecture, the request flow, and the API contract: [`.doc/architecture.md`](../.doc/architecture.md).
 
@@ -51,6 +52,16 @@ npm run dev
 
 Then open http://localhost:3000.
 
+## Generate Quiz
+- The "Generate Quiz" button in the header is enabled once the `chat` has a full exchange (the last
+  `message` is a finished `tutor` reply) and no reply is streaming.
+- Clicking it sends the whole `chat` to `POST /api/quiz`. While the `quiz` is generated, the button
+  shows a spinner and sending a new `message` is disabled.
+- The quiz view replaces the `chat`: pick one `option` per `question`, then "Check answers" shows
+  the score, the `correct option`, and an `explanation` for each `question`. "Retake quiz" clears
+  the answers, and "Back to chat" returns to the `chat` and the draft unchanged.
+- On a failure, one toast is shown and the `chat` and the draft stay as they were.
+
 ## Scripts
 | Command | What it does |
 |---|---|
@@ -60,6 +71,18 @@ Then open http://localhost:3000.
 | `npm run lint` | Runs ESLint. |
 | `npm run typecheck` | Generates the Next.js route types, then runs `tsc --noEmit`. |
 | `npm test` | Runs the Vitest + Testing Library suite in `tests/unit/`. It stubs `fetch` and needs no backend. |
+
+### Quiz tests
+All under `tests/unit/`:
+
+| File | Covers |
+|---|---|
+| `quiz.client.test.ts` | `generateQuiz`: the request, the response check, error mapping, and abort. |
+| `quiz-error.test.ts` | The quiz toast texts, the fallback for an unknown code, and the chat fallback for `quiz_malformed`. |
+| `use-quiz.test.ts` | `useQuiz`: generating, answering, checking, retaking, closing, and failure toasts. |
+| `quiz-view.test.tsx` | The quiz view: radios, "Check answers", results, explanations, and "Retake quiz". |
+| `chat-view-quiz.test.tsx` | `ChatView` with quizzes: the "Generate Quiz" button state (AC07), the switch between the `chat` and the quiz view, failure toasts, and that every request goes to the `proxy` only (AC06). |
+| `helpers/controlled-json-response.ts` | A `fetch` result the test settles by hand, so loading states can be checked without timers. |
 
 ## Not in V1
 - Playwright e2e tests.

@@ -2,7 +2,8 @@
 @plugin "@tailwindcss/typography";
 
 /* Design tokens. Neutral palette with one accent; `danger` marks errors such as an
-   over-limit message. Components use them through the utilities exposed below. */
+   over-limit message, and `success` marks a right quiz answer. Components use them
+   through the utilities exposed below. */
 :root {
   --background: #fafafa;
   --surface: #ffffff;
@@ -12,6 +13,7 @@
   --accent: #4f46e5;
   --accent-foreground: #ffffff;
   --danger: #dc2626;
+  --success: #15803d;
 
   --gutter: 1rem;
   --chat-width: 48rem;
@@ -30,6 +32,7 @@
     --accent: #818cf8;
     --accent-foreground: #09090b;
     --danger: #f87171;
+    --success: #4ade80;
   }
 }
 
@@ -42,6 +45,7 @@
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
   --color-danger: var(--danger);
+  --color-success: var(--success);
 
   --spacing-gutter: var(--gutter);
   --container-chat: var(--chat-width);
