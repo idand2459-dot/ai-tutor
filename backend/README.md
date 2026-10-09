@@ -28,13 +28,14 @@ Copy-Item .env.example .env
 | `ANTHROPIC_API_KEY` | yes | — | Anthropic API key. Used only by the `proxy`. |
 | `FRONTEND_URL` | yes | — | The only origin allowed by CORS. |
 | `PORT` | no | `4000` | Port on `127.0.0.1`. |
-| `ANTHROPIC_MODEL` | no | `claude-haiku-4-5` | Model for `tutor` replies and for the `quiz`. |
+| `ANTHROPIC_MODEL` | no | `claude-sonnet-5-5` | Model for `tutor` replies and for the `quiz`. |
 
 `.env` is gitignored. Never commit it or paste its values anywhere. If a required variable is
 missing or invalid, the server prints which one and exits with code 1.
 
 `ANTHROPIC_MODEL` also changes the `quiz` model; both routes use the same model, with no code
-change. In manual runs, `quiz` quality was better on `claude-sonnet-5-5` than on the default.
+change. The default is `claude-sonnet-5-5` because, in manual runs, `quiz` quality was better on it
+than on the previous default.
 
 ## Run
 | Command | What it does |

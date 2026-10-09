@@ -69,13 +69,13 @@ describe('createChatService', () => {
       expect(requests[0]?.messages.map(message => message.role)).toEqual(['user', 'assistant', 'user'])
     })
 
-    it('uses claude-haiku-4-5 when ANTHROPIC_MODEL is unset', () => {
+    it('uses claude-sonnet-5-5 when ANTHROPIC_MODEL is unset', () => {
       const { client, requests } = fakeClient()
       const { model } = loadConfig({ ANTHROPIC_API_KEY: 'test-key', FRONTEND_URL: 'http://localhost:3000' })
 
       createChatService({ client, model }).streamReply([userMessage])
 
-      expect(requests[0]?.model).toBe('claude-haiku-4-5')
+      expect(requests[0]?.model).toBe('claude-sonnet-5-5')
     })
 
     it('uses ANTHROPIC_MODEL when it is set', () => {

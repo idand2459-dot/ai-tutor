@@ -90,6 +90,20 @@ describe("QuizView before checking", () => {
     expect(screen.getByRole("radio", { name: "Option D4" })).toBeInTheDocument()
   })
 
+  it("renders inline code in options without backticks", () => {
+    const withCode: Quiz = {
+      questions: quiz.questions.map((question, index) =>
+        index === 0 ? { ...question, options: ["Call `map()` once", ...question.options.slice(1)] } : question,
+      ),
+    }
+    render(<TestHost value={withCode} />)
+
+    const radio = screen.getByRole("radio", { name: "Call map() once" })
+    const label = radio.closest("label")
+    expect(label?.querySelector("code")).toHaveTextContent("map()")
+    expect(label).not.toHaveTextContent("`")
+  })
+
   it("keeps Check answers disabled until all 5 questions are answered", async () => {
     const user = userEvent.setup()
     render(<TestHost />)
@@ -210,6 +224,23 @@ describe("QuizView actions", () => {
     }
     expect(screen.queryByText(/You got/)).not.toBeInTheDocument()
     expect(checkButton()).toBeDisabled()
+  })
+
+  it("moves focus to the first option of question 1 after Retake quiz", async () => {
+    const user = userEvent.setup()
+    render(<TestHost />)
+    await answerAll(user, () => 0)
+    await user.click(checkButton())
+
+    await user.click(screen.getByRole("button", { name: "Retake quiz" }))
+
+    expect(within(groups()[0]).getAllByRole("radio")[0]).toHaveFocus()
+  })
+
+  it("does not move focus when the quiz first renders", () => {
+    render(<TestHost />)
+
+    expect(document.activeElement).toBe(document.body)
   })
 
   it("Back to chat calls onClose", async () => {

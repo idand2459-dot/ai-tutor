@@ -38,7 +38,7 @@
 | Skill | Use it when |
 |---|---|
 | `writing-plans` | Creating, revising, or superseding a plan in `.plan/` |
-| `writing-tests` | Adding or reviewing unit, integration, or e2e tests |
+| `writing-tests` | Adding or reviewing unit, integration, or component tests |
 | `error-handling` | Shaping an error response, status code, retry, or failure UX |
 
 ## Product and Domain

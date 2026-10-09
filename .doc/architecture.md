@@ -24,10 +24,10 @@ All paths are under `backend/src/`.
 | `route/chat.ts` | `POST /api/chat`. Validates the body, streams the `tutor` reply as SSE, maps errors to the contract codes, aborts the upstream request when the client disconnects, and logs failures. Exports `mapChatError`, which `route/quiz.ts` reuses for SDK errors. |
 | `route/quiz.ts` | `POST /api/quiz`. Validates the body, calls the quiz service, returns `200 { quiz }`, maps `QuizMalformedError` to `502 quiz_malformed` and `TutorRefusedError` to `422 tutor_refused` (everything else through `mapChatError`), aborts the upstream request when the client disconnects (same `res.on('close')` rule as chat), and logs failures and a retry that succeeded. |
 | `lib/config.ts` | Reads and validates `ANTHROPIC_API_KEY`, `FRONTEND_URL`, `PORT`, and `ANTHROPIC_MODEL`. Error messages name variables, never values. |
-| `lib/chat-request.ts` | Request body schema (zod) and `validateChatRequest`. Exports `messageSchema` and the limits for reuse by the quiz request. |
+| `lib/chat-request.ts` | Request body schema (zod) and `validateChatRequest`. Exports `messageSchema` (the content cap depends on the role: `MAX_CONTENT_LENGTH`, 8,000 characters, for `user`; `MAX_TUTOR_CONTENT_LENGTH`, 24,000, for `tutor`), `messageListSchema(lastRole)` (the `messages` array and its order rules, shared by the chat and quiz requests), and the limits. |
 | `lib/chat.service.ts` | Maps `tutor` to the Anthropic role `assistant`, calls `client.messages.stream`, yields reply text, throws `TutorRefusedError` on a `refusal` stop reason, and exposes `abort()`. |
 | `lib/system-prompt.ts` | `SYSTEM_PROMPT`, the `system prompt` sent with every chat request. |
-| `lib/quiz-request.ts` | `quizRequestSchema` (zod) and `validateQuizRequest`: the chat `message` rules, but the last `message` must be from `tutor`. Returns the same `{ success, issues }` shape as `validateChatRequest`. |
+| `lib/quiz-request.ts` | `quizRequestSchema` (zod, built on `messageListSchema('tutor')`) and `validateQuizRequest`: the chat `message` rules, but the last `message` must be from `tutor`. Returns the same `{ success, issues }` shape as `validateChatRequest`. |
 | `lib/quiz-schema.ts` | `quizSchema` (zod, strict), the real gate for the model output and the `200` body; `QUIZ_JSON_SCHEMA`, the hand-written JSON Schema sent as `output_config.format.schema`; the `Quiz` and `Question` types. |
 | `lib/quiz.service.ts` | `toQuizTranscript` (the escaped transcript) and `createQuizService({ client, model, random? })`. `generateQuiz(messages, { signal })` calls `client.messages.create` at most twice, classifies each response (valid, malformed, or refusal), shuffles the options, and returns `{ quiz, attempts }`. Throws `QuizMalformedError` (with the attempt count) or `TutorRefusedError`; SDK errors pass through unretried. |
 | `lib/quiz-system-prompt.ts` | `QUIZ_SYSTEM_PROMPT`, the `system` sent with every quiz request instead of `SYSTEM_PROMPT`. |
@@ -98,14 +98,16 @@ All paths are under `frontend/src/`.
 | `components/chat/message-input.tsx` | Presentational textarea, send button, character counter, and the full-`chat` notice. Enter sends, Shift+Enter adds a line, and Enter during an IME composition does nothing. |
 | `components/chat/tutor-markdown.tsx` | Renders `tutor` content as Markdown (see Markdown safety). |
 | `components/quiz/generate-quiz-button.tsx` | Presentational "Generate Quiz" button (`ListChecks` icon). While generating it shows a `Loader2` spinner, `aria-busy`, and hidden "Generating quiz" text. |
-| `components/quiz/quiz-view.tsx` | Presentational quiz view: heading, "Back to chat", the score line "You got N of 5 right." (focused after checking), one `QuizQuestion` per `question`, and "Check answers" / "Retake quiz". |
-| `components/quiz/quiz-question.tsx` | One `question` as a `fieldset` of 4 native radios, named by the `question` text through `aria-labelledby` (not a `legend`, because `TutorMarkdown` renders block elements). After checking: `Check` / `X` icon plus "Correct" / "Incorrect", "Correct answer" and "Your answer" marks, and the `explanation`. `question` text and `explanation` go through `TutorMarkdown`; `option` text is plain text. |
+| `components/quiz/quiz-view.tsx` | Presentational quiz view: heading, "Back to chat", the score line "You got N of 5 right." (focused after checking), one `QuizQuestion` per `question`, and "Check answers" / "Retake quiz". After "Retake quiz", focus moves to the first option of question 1; focus does not move when the quiz first opens. |
+| `components/quiz/quiz-question.tsx` | One `question` as a `fieldset` of 4 native radios, named by the `question` text through `aria-labelledby` (not a `legend`, because `TutorMarkdown` renders block elements). After checking: `Check` / `X` icon plus "Correct" / "Incorrect", "Correct answer" and "Your answer" marks, and the `explanation`. `question` text and `explanation` go through `TutorMarkdown`; `option` text is plain text, except that single-backtick pairs render as `<code>` (through `splitInlineCode`). |
 | `hooks/use-chat.ts` | `useChat()` → `{ messages, status, draft, setDraft, send, isChatFull }`. A reducer moves `status` through `idle → sending → streaming → idle`. |
 | `hooks/use-quiz.ts` | `useQuiz()` → `{ status, quiz, answers, isChecked, canCheck, score, generate, select, check, retake, close }`. `status` is `idle` or `generating`. One request at a time; aborts on unmount; one toast per failure. |
 | `lib/chat.client.ts` | `streamChat(messages, { signal })`: the request to the `proxy` and SSE parsing. Exports `readErrorResponse`, the standard-error-shape reader that `quiz.client.ts` reuses. |
 | `lib/quiz.client.ts` | `generateQuiz(messages, { signal })` → `Quiz`, or `null` when the signal aborts. Throws a `ChatError` on every other failure. Never retries. |
 | `lib/chat-error.ts` | `ChatError { code, requestId? }`, `ChatErrorCode` (includes `quiz_malformed`), and `toastTextFor(code)`. The chat toast table is typed with `ChatToastCode` (`ChatErrorCode` without `quiz_malformed`), so `quiz_malformed` has no chat text and falls back to the `internal_error` text. |
 | `lib/quiz-error.ts` | The quiz toast table and `quizToastTextFor(code)`. |
+| `lib/failure-toast.ts` | `showFailureToast(error, textFor)`, the one failure toast shared by `useChat` (with `toastTextFor`) and `useQuiz` (with `quizToastTextFor`). |
+| `lib/inline-code.ts` | `splitInlineCode(text)`: splits `option` text into text and code segments. Only a single-backtick pair around at least one character is code; an unmatched backtick, an empty pair, and double backticks stay literal, and nothing else is parsed. The segments are rendered as React text and `<code>` elements, never as HTML. |
 | `lib/chat-limit.ts` | The client-side limits, `canSend(chat, draft)`, and `canGenerateQuiz(chat, status)`. |
 | `lib/config.ts` | `PROXY_URL`. |
 | `types/chat.ts` | `ChatRole`, `Message`, `ChatStatus`, `ChatEvent`. |
@@ -151,7 +153,8 @@ All paths are under `frontend/src/`.
 5. On success the quiz view replaces the message list and the input. The user picks one `option`
    per `question`; "Check answers" is enabled once all 5 are answered. After checking, the radios are
    disabled and each `question` shows its result and `explanation`. "Retake quiz" clears the answers
-   for the same `quiz`; "Back to chat" closes it and the `chat` and draft come back unchanged.
+   for the same `quiz` and moves focus to the first option of question 1; "Back to chat" closes it
+   and the `chat` and draft come back unchanged.
 6. On failure: one toast, the view stays on the chat, and the `chat` and the draft are unchanged.
 
 Quiz toast texts (from `src/lib/quiz-error.ts`; an unknown code gets the `internal_error` text):
@@ -184,12 +187,16 @@ These mirror the `proxy` validation, so a valid UI never sends a request that re
 - A draft must be non-empty after trimming and at most 8,000 characters, measured before trimming
   as the `proxy` does. The counter turns to the `danger` token and announces "Message is too long"
   over the limit.
+- `tutor` replies are not measured in the browser. The `proxy` accepts a `tutor` message of up to
+  24,000 characters, sized for a full 4,096-token reply.
 
 ### Error UX
 - One `sonner` toast per failure. Its text comes only from the table in `src/lib/chat-error.ts`
   (one line per contract code except `quiz_malformed`, plus `network_error`); an unknown code, and
   `quiz_malformed`, get the `internal_error` text. Quiz failures use their own table (see Quiz flow).
   The server's `error.message` is never shown.
+- Both hooks show the toast through `showFailureToast(error, textFor)` in `src/lib/failure-toast.ts`;
+  anything that is not a `ChatError` is shown as `internal_error`.
 - When present, the `requestId` appears in the toast description as `Request ID: <id>`.
 - Toasts never contain `message` content.
 
@@ -223,7 +230,7 @@ These mirror the `proxy` validation, so a valid UI never sends a request that re
   `client.messages.create` with structured outputs (`output_config.format` of type `json_schema`)
   for `/api/quiz`. Structured outputs do not enforce array lengths or number ranges, so `quizSchema`
   enforces the counts and the index range.
-- Model: `claude-haiku-4-5` unless `ANTHROPIC_MODEL` is set. Both routes use the same model.
+- Model: `claude-sonnet-5-5` unless `ANTHROPIC_MODEL` is set. Both routes use the same model.
 - The client is built with SDK defaults: up to 2 retries on connection errors, 408, 409, 429, and
   5xx, and a 10-minute timeout. The quiz request overrides the timeout to 60 seconds. The `proxy`
   adds no retries for these errors; its only retry is the quiz retry for malformed output.
@@ -250,12 +257,15 @@ These mirror the `proxy` validation, so a valid UI never sends a request that re
   Model output is non-deterministic and structured outputs cannot enforce the counts, so a single
   miss is often fixed by asking again; AC04 requires that one retry. Validation errors, refusals, and
   SDK errors are never retried by the `proxy` (the SDK's own transport retries still apply).
-- Limits: 2 MB request body, 50 `message` items, 8,000 characters per `message`, and 4,096 output tokens.
+- Limits: 2 MB request body, 50 `message` items, 8,000 characters per `user` message and 24,000 per
+  `tutor` message, and 4,096 output tokens. The `tutor` cap is higher because a 4,096-token reply
+  can be longer than 8,000 characters, and the next request sends it back.
   A quiz request also has a 60-second timeout per model call and makes at most 2 model calls.
 - Monitoring: `GET /api/health` only.
-- Model choice: in manual runs, quiz quality was better on `claude-sonnet-5-5` than on
-  `claude-haiku-4-5`. The default stays `claude-haiku-4-5`. Setting `ANTHROPIC_MODEL` in
-  `backend/.env` changes the model for both routes with no code change.
+- Model choice: the default is `claude-sonnet-5-5` for both routes, because in manual runs quiz
+  quality was better on it than on the previous default. The trade-off is a higher cost per request
+  than the previous default. Setting `ANTHROPIC_MODEL` in `backend/.env` changes the model for both
+  routes with no code change.
 - Known limitations: `claude-haiku-4-5`, `claude-sonnet-5-5`, and `claude-opus-5-5` sometimes return
   words glued together inside sentences (for example "countertoward"), mostly in the `explanation`
   field. This was observed with and without structured outputs, with and without streaming, and with
@@ -319,7 +329,8 @@ Request body (`application/json`):
 Validation rules — any violation returns `400 validation_error`:
 - `messages` is a non-empty array of at most 50 items.
 - `role` is `"user"` or `"tutor"`.
-- `content` is a string, non-empty after trimming, at most 8,000 characters.
+- `content` is a string, non-empty after trimming, at most 8,000 characters for a `user` message and
+  at most 24,000 for a `tutor` message.
 - The first and the last `message` are from `user`, and roles alternate.
   So a valid `chat` always has an odd number of `message` items, and the longest valid `chat`
   has 49, not 50.
@@ -381,7 +392,8 @@ Request body (`application/json`), the same shape as `POST /api/chat`:
 Validation rules — any violation returns `400 validation_error`, with `error.details` as described in Conventions:
 - `messages` is a non-empty array of at most 50 items.
 - `role` is `"user"` or `"tutor"`.
-- `content` is a string, non-empty after trimming, at most 8,000 characters.
+- `content` is a string, non-empty after trimming, at most 8,000 characters for a `user` message and
+  at most 24,000 for a `tutor` message.
 - The first `message` is from `user`, and roles alternate.
 - **The last `message` is from `tutor`**, unlike `POST /api/chat`, whose last `message` must be from
   `user`. So a valid `chat` holds at least one full exchange, always has an even number of

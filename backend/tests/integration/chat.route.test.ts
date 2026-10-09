@@ -87,6 +87,17 @@ describe('POST /api/chat', () => {
       })
       expect(requests).toHaveLength(0)
     })
+
+    it('accepts a chat whose tutor message is longer than 8,000 characters', async () => {
+      const { client } = fakeClient(fakeStream([textDelta('hint'), stopWith('end_turn')]))
+      const { app } = createTestApp(client)
+      const messages = [userMessage, { role: 'tutor', content: 'x'.repeat(20000) }, userMessage]
+
+      const response = await request(app).post('/api/chat').send({ messages })
+
+      expect(response.status).toBe(200)
+      expect(response.headers['content-type']).toMatch(/^text\/event-stream/)
+    })
   })
 
   describe('upstream failure before streaming (AC03)', () => {

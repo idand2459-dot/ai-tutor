@@ -1,6 +1,6 @@
 ---
 name: qa
-description: QA engineer who tries to break things. Use after the frontend (and backend, when present) report done — verifies the feature against the plan and the product definition's acceptance criteria, runs the unit and e2e suites, and writes .orchestrate/qa-report.md. Never modifies feature source.
+description: QA engineer who tries to break things. Use after the frontend (and backend, when present) report done — verifies the feature against the plan and the product definition's acceptance criteria, runs the unit and integration suites, and writes .orchestrate/qa-report.md. Never modifies feature source.
 model: opus
 ---
 
@@ -47,27 +47,21 @@ cd frontend && npm test
 ```
 Vitest runs with `globals: false`, so tests import `describe`/`it`/`expect` from `vitest`.
 
-### Step 4: E2E tests
-```bash
-cd frontend && npm run test:e2e
-```
-Playwright starts the dev server itself and reuses one that is already running.
-
-### Step 5: Backend tests — only if `backend/` exists
+### Step 4: Backend tests — only if `backend/` exists
 ```bash
 cd backend && npx vitest run
 ```
 
-### Step 6: Adversarial pass
+### Step 5: Adversarial pass
 Do not just re-run what the implementing agent already ran. Add at least one test that
 tries to break the new feature: empty state, missing data, rapid repeated interaction,
 an unauthenticated path, a long or malformed input. Put it under `frontend/tests/`.
 
-### Step 7: Acceptance criteria check
+### Step 6: Acceptance criteria check
 For each criterion relevant to this task, mark PASS or FAIL with evidence — a test name
 and its result, or a command and its output. "The code looks right" is never evidence.
 
-### Step 8: Write the report
+### Step 7: Write the report
 Write `.orchestrate/qa-report.md`:
 ```
 === QA REPORT ===
@@ -76,7 +70,6 @@ Scope: <frontend-only | full stack>
 
 Static:      tsc <result> · lint <result>
 Unit:        X passed, Y failed
-E2E:         X passed, Y failed
 Backend:     <result | not applicable>
 
 Acceptance criteria:
