@@ -1,6 +1,7 @@
 import { Check, X } from "lucide-react"
 import { useId } from "react"
 import { TutorMarkdown } from "@/components/chat/tutor-markdown"
+import { splitInlineCode } from "@/lib/inline-code"
 import type { Question } from "@/types/quiz"
 
 type QuizQuestionProps = {
@@ -17,7 +18,8 @@ type QuizQuestionProps = {
 // One question as a group of native radios. The group is named by the question
 // text through aria-labelledby, not a <legend>: TutorMarkdown renders block
 // elements, which a <legend> must not contain. Question text and explanation are
-// model output, so they go through TutorMarkdown; options stay plain text.
+// model output, so they go through TutorMarkdown; options stay plain text, with
+// only inline code rendered as <code>.
 export function QuizQuestion({ question, index, total, answer, isChecked, onSelect }: QuizQuestionProps) {
   const id = useId()
   const textId = `${id}-text`
@@ -61,7 +63,20 @@ export function QuizQuestion({ question, index, total, answer, isChecked, onSele
                 aria-describedby={showCorrect || showWrongChoice ? markId : undefined}
                 className="mt-1 shrink-0 accent-accent"
               />
-              <span className="min-w-0 flex-1 whitespace-pre-wrap break-words">{option}</span>
+              <span className="min-w-0 flex-1 whitespace-pre-wrap break-words">
+                {splitInlineCode(option).map((segment, segmentIndex) =>
+                  segment.type === "code" ? (
+                    <code
+                      key={segmentIndex}
+                      className="rounded-control border border-border bg-background px-1 font-mono text-sm"
+                    >
+                      {segment.value}
+                    </code>
+                  ) : (
+                    segment.value
+                  ),
+                )}
+              </span>
               {/* Marks describe the radio instead of joining its name, so the name stays the option text. */}
               {showCorrect && (
                 <span id={markId} aria-hidden="true" className="shrink-0 text-xs font-medium text-success">

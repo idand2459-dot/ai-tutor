@@ -90,6 +90,20 @@ describe("QuizView before checking", () => {
     expect(screen.getByRole("radio", { name: "Option D4" })).toBeInTheDocument()
   })
 
+  it("renders inline code in options without backticks", () => {
+    const withCode: Quiz = {
+      questions: quiz.questions.map((question, index) =>
+        index === 0 ? { ...question, options: ["Call `map()` once", ...question.options.slice(1)] } : question,
+      ),
+    }
+    render(<TestHost value={withCode} />)
+
+    const radio = screen.getByRole("radio", { name: "Call map() once" })
+    const label = radio.closest("label")
+    expect(label?.querySelector("code")).toHaveTextContent("map()")
+    expect(label).not.toHaveTextContent("`")
+  })
+
   it("keeps Check answers disabled until all 5 questions are answered", async () => {
     const user = userEvent.setup()
     render(<TestHost />)
