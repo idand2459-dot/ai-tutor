@@ -16,8 +16,8 @@ Applies to unit, integration, and component tests.
 ## Must be covered
 - Domain logic and state transitions.
 - API request validation and error responses.
-- Auth and org boundary enforcement.
-- Persistence-critical paths and migration-sensitive queries.
+- Security boundaries: the API key never reaches `frontend/`, CORS allows only `FRONTEND_URL`, and `tutor` output is rendered as untrusted text.
+- Model output: a `quiz` that still fails the schema after the backend's retries ends in `502 quiz_malformed`, and the frontend shows it as a toast.
 - User-facing failure flows for key features.
 
 ## Structure

@@ -20,7 +20,7 @@ write outside your allowed paths — do not try to work around it.
 - Next.js 16 (App Router) + React 19 + TypeScript
 - Tailwind CSS v4 (via `@tailwindcss/turbopack`, wired through `turbopack.rules` in `next.config.ts`) — utility classes, no new CSS files
 - `lucide-react` for icons, `sonner` for toasts (see `.claude/rules/ui-and-styling.md`)
-- Mock data layer: `frontend/src/mock/seed.ts` + React `useState` — **there is no backend**
+- Data: React state in `frontend/src/hooks/` (`use-chat.ts`, `use-quiz.ts`); every request goes to the `proxy` in `backend/`
 - Vitest + React Testing Library (unit and component tests only; there is no browser-driven test suite).
 
 Never run `npm create vite`, `create-next-app`, or `npm init` — you would destroy the app.
@@ -47,13 +47,10 @@ Work inside the existing app. Match the surrounding code: **no trailing semicolo
 (`.claude/rules/code-style.md`), singular entity names (`.claude/rules/naming.md`),
 Tailwind utilities only, `sonner` for toasts, `lucide-react` for icons.
 
-### Step 3: Record the API contract
-Update `.orchestrate/api-contract.yaml` with the shape the future backend must implement
-for what you built — an OpenAPI 3.0 document.
-
-On a frontend-only task nothing implements this contract yet, and that is fine: it is the
-handoff artifact for a later full-stack task. Do not invent endpoints the feature
-does not need.
+### Step 3: Follow the API contract
+The contract between `frontend/` and `backend/` lives in `.doc/architecture.md` → API Contract,
+and it is the only copy. Call only the routes it declares, with the shapes it gives. If the
+feature needs a contract change, do not edit `.doc/`: describe the change in your report.
 
 ### Step 4: Tests
 - `frontend/vitest.config.mts` — jsdom, `globals: false`, only picks up `tests/unit/**`
@@ -81,7 +78,7 @@ Write `.orchestrate/frontend-agent-report.md`:
 Ticket: <id>
 Files changed: <list>
 Unit tests: X passed, 0 failed
-API contract: .orchestrate/api-contract.yaml (<what you added>)
+API contract: <routes used from .doc/architecture.md → API Contract; any change needed>
 
 Handoff:
 - <what a backend agent would need to implement, if anything>
