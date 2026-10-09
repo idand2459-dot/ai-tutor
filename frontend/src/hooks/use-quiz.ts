@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useReducer, useRef } from "react"
-import { toast } from "sonner"
-import { ChatError } from "@/lib/chat-error"
+import { showFailureToast } from "@/lib/failure-toast"
 import { generateQuiz } from "@/lib/quiz.client"
 import { quizToastTextFor } from "@/lib/quiz-error"
 import type { Message } from "@/types/chat"
@@ -77,15 +76,6 @@ function quizReducer(state: QuizState, action: QuizAction): QuizState {
   }
 }
 
-function showFailureToast(error: unknown) {
-  const chatError = error instanceof ChatError ? error : new ChatError("internal_error")
-  // Only the fixed table text and the request id; never message content.
-  toast.error(
-    quizToastTextFor(chatError.code),
-    chatError.requestId ? { description: `Request ID: ${chatError.requestId}` } : undefined,
-  )
-}
-
 export type UseQuiz = {
   status: QuizStatus
   quiz: Quiz | null
@@ -141,7 +131,7 @@ export function useQuiz(): UseQuiz {
         return
       }
       dispatch({ type: "stop" })
-      showFailureToast(error)
+      showFailureToast(error, quizToastTextFor)
     } finally {
       if (controllerRef.current === controller) {
         controllerRef.current = null

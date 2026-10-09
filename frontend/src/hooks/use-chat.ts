@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useReducer, useRef, useState } from "react"
-import { toast } from "sonner"
 import { streamChat } from "@/lib/chat.client"
 import { ChatError, toastTextFor } from "@/lib/chat-error"
 import { canSend, isChatFull } from "@/lib/chat-limit"
+import { showFailureToast } from "@/lib/failure-toast"
 import type { ChatStatus, Message } from "@/types/chat"
 
 type ChatState = {
@@ -48,15 +48,6 @@ function chatReducer(state: ChatState, action: ChatAction): ChatState {
         previousMessages: null,
       }
   }
-}
-
-function showFailureToast(error: unknown) {
-  const chatError = error instanceof ChatError ? error : new ChatError("internal_error")
-  // Only the fixed table text and the request id; never message content.
-  toast.error(
-    toastTextFor(chatError.code),
-    chatError.requestId ? { description: `Request ID: ${chatError.requestId}` } : undefined,
-  )
 }
 
 export type UseChat = {
@@ -133,7 +124,7 @@ export function useChat(): UseChat {
       }
       dispatch({ type: "fail" })
       restoreDraft()
-      showFailureToast(error)
+      showFailureToast(error, toastTextFor)
     } finally {
       if (controllerRef.current === controller) {
         controllerRef.current = null
