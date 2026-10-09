@@ -212,6 +212,23 @@ describe("QuizView actions", () => {
     expect(checkButton()).toBeDisabled()
   })
 
+  it("moves focus to the first option of question 1 after Retake quiz", async () => {
+    const user = userEvent.setup()
+    render(<TestHost />)
+    await answerAll(user, () => 0)
+    await user.click(checkButton())
+
+    await user.click(screen.getByRole("button", { name: "Retake quiz" }))
+
+    expect(within(groups()[0]).getAllByRole("radio")[0]).toHaveFocus()
+  })
+
+  it("does not move focus when the quiz first renders", () => {
+    render(<TestHost />)
+
+    expect(document.activeElement).toBe(document.body)
+  })
+
   it("Back to chat calls onClose", async () => {
     const user = userEvent.setup()
     const onClose = vi.fn()

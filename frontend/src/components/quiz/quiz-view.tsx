@@ -28,17 +28,24 @@ const secondaryButton =
 export function QuizView({ quiz, answers, isChecked, canCheck, score, onSelect, onCheck, onRetake, onClose }: QuizViewProps) {
   const headingId = useId()
   const summaryRef = useRef<HTMLParagraphElement>(null)
+  const sectionRef = useRef<HTMLElement>(null)
+  const wasCheckedRef = useRef(isChecked)
   const total = quiz.questions.length
 
   // The result shows at the top; moving focus there saves scrolling back up.
+  // After "Retake quiz" the button is gone, so focus goes to the first option
+  // to start again. Focus never moves when the quiz first opens.
   useEffect(() => {
     if (isChecked) {
       summaryRef.current?.focus()
+    } else if (wasCheckedRef.current) {
+      sectionRef.current?.querySelector<HTMLInputElement>('input[type="radio"]')?.focus()
     }
+    wasCheckedRef.current = isChecked
   }, [isChecked])
 
   return (
-    <section aria-labelledby={headingId} className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto py-4">
+    <section ref={sectionRef} aria-labelledby={headingId} className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto py-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h2 id={headingId} className="text-base font-semibold text-foreground">
           Quiz
