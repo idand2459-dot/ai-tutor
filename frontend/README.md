@@ -59,7 +59,10 @@ Then open http://localhost:3000.
   shows a spinner and sending a new `message` is disabled.
 - The quiz view replaces the `chat`: pick one `option` per `question`, then "Check answers" shows
   the score, the `correct option`, and an `explanation` for each `question`. "Retake quiz" clears
-  the answers, and "Back to chat" returns to the `chat` and the draft unchanged.
+  the answers and moves focus to the first option of question 1, and "Back to chat" returns to the
+  `chat` and the draft unchanged.
+- `option` text is plain text; only inline code in single backticks (for example `` `map()` ``)
+  renders as code.
 - On a failure, one toast is shown and the `chat` and the draft stay as they were.
 
 ## Scripts
@@ -80,7 +83,8 @@ All under `tests/unit/`:
 | `quiz.client.test.ts` | `generateQuiz`: the request, the response check, error mapping, and abort. |
 | `quiz-error.test.ts` | The quiz toast texts, the fallback for an unknown code, and the chat fallback for `quiz_malformed`. |
 | `use-quiz.test.ts` | `useQuiz`: generating, answering, checking, retaking, closing, and failure toasts. |
-| `quiz-view.test.tsx` | The quiz view: radios, "Check answers", results, explanations, and "Retake quiz". |
+| `quiz-view.test.tsx` | The quiz view: radios, "Check answers", results, explanations, "Retake quiz" and the focus after it, and inline code in options. |
+| `inline-code.test.ts` | `splitInlineCode`: code spans, and the backtick cases that stay literal. |
 | `chat-view-quiz.test.tsx` | `ChatView` with quizzes: the "Generate Quiz" button state (AC07), the switch between the `chat` and the quiz view, failure toasts, and that every request goes to the `proxy` only (AC06). |
 | `helpers/controlled-json-response.ts` | A `fetch` result the test settles by hand, so loading states can be checked without timers. |
 
