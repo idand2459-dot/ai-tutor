@@ -145,6 +145,33 @@ describe('validateChatRequest', () => {
     })
   })
 
+  // A tutor reply can be up to 4,096 tokens, which can be more than 8,000 characters.
+  describe('tutor message length', () => {
+    const TUTOR_CAP = 24000
+
+    it(`accepts a tutor message of exactly ${TUTOR_CAP} characters`, () => {
+      const messages = [message('user'), message('tutor', 'x'.repeat(TUTOR_CAP)), message('user')]
+
+      expect(validateChatRequest({ messages }).success).toBe(true)
+    })
+
+    it(`rejects a tutor message of ${TUTOR_CAP + 1} characters`, () => {
+      const messages = [message('user'), message('tutor', 'x'.repeat(TUTOR_CAP + 1)), message('user')]
+
+      expect(issuesOf({ messages })).toEqual([
+        { path: 'messages.1.content', message: `must be at most ${TUTOR_CAP} characters` }
+      ])
+    })
+
+    it(`still rejects a user message of ${MAX_CONTENT_LENGTH + 1} characters`, () => {
+      const messages = [message('user'), message('tutor'), message('user', 'x'.repeat(MAX_CONTENT_LENGTH + 1))]
+
+      expect(issuesOf({ messages })).toEqual([
+        { path: 'messages.2.content', message: `must be at most ${MAX_CONTENT_LENGTH} characters` }
+      ])
+    })
+  })
+
   describe('role order', () => {
     it('rejects a chat whose first message is from tutor', () => {
       const messages = [message('tutor'), message('user')]

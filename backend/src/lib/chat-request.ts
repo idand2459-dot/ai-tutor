@@ -1,18 +1,35 @@
 import { z } from 'zod'
 
 export const MAX_MESSAGES = 50
+// The cap for a `user` message.
 export const MAX_CONTENT_LENGTH = 8000
+// A `tutor` reply can be up to 4,096 tokens, which can be more than 8,000 characters.
+export const MAX_TUTOR_CONTENT_LENGTH = 24000
 
 export const MESSAGE_ROLES = ['user', 'tutor'] as const
 
+function contentLimitFor(role: unknown): number {
+  return role === 'tutor' ? MAX_TUTOR_CONTENT_LENGTH : MAX_CONTENT_LENGTH
+}
+
 // Messages name the rule, never the received value: content can be long, and it is user input.
-export const messageSchema = z.object({
-  role: z.enum(MESSAGE_ROLES, { error: 'must be "user" or "tutor"' }),
-  content: z
-    .string({ error: 'must be a string' })
-    .max(MAX_CONTENT_LENGTH, { error: `must be at most ${MAX_CONTENT_LENGTH} characters` })
-    .refine(content => content.trim() !== '', { error: 'must not be empty' })
-})
+export const messageSchema = z
+  .object({
+    role: z.enum(MESSAGE_ROLES, { error: 'must be "user" or "tutor"' }),
+    content: z
+      .string({ error: 'must be a string' })
+      .refine(content => content.trim() !== '', { error: 'must not be empty' })
+  })
+  .superRefine((message, ctx) => {
+    // The cap depends on the role. An unknown role gets the stricter user cap.
+    const limit = contentLimitFor(message.role)
+    if (typeof message.content === 'string' && message.content.length > limit) {
+      ctx.addIssue({ code: 'custom', path: ['content'], message: `must be at most ${limit} characters` })
+    }
+  }, {
+    // Also run when another field already failed, so a long message is never left unchecked.
+    when: payload => typeof payload.value === 'object' && payload.value !== null
+  })
 
 // The `messages` array and its order rules, shared by POST /api/chat and POST /api/quiz:
 // the first message is from "user", the last from `lastRole`, and roles alternate.

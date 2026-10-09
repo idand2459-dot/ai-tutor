@@ -89,6 +89,16 @@ describe('POST /api/quiz', () => {
       })
       expect(createRequests).toHaveLength(0)
     })
+
+    it('accepts a chat whose tutor message is longer than 8,000 characters', async () => {
+      const { app } = setup([VALID()])
+      const messages = [chat[0], { role: 'tutor', content: 'x'.repeat(20000) }]
+
+      const response = await request(app).post('/api/quiz').send({ messages })
+
+      expect(response.status).toBe(200)
+      expect(response.body.quiz.questions).toHaveLength(5)
+    })
   })
 
   describe('malformed output (AC04)', () => {
