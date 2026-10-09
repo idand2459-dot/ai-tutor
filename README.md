@@ -66,3 +66,6 @@ open questions, steps, and a validation checklist, which the owner approves befo
 written. Each plan runs on its own branch, one step at a time, with an AI coding agent doing the
 work and guardrail hooks blocking commits, merges, and pushes. The owner reviews each step and
 makes every commit and merge.
+
+## License
+MIT. See [`LICENSE`](LICENSE).
