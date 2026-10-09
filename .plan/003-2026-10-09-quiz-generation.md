@@ -1,6 +1,6 @@
 # 003 — Quiz generation: button, schema validation, quiz view
 
-Status: active
+Status: done
 Owner: Idan
 Last updated: 2026-10-09
 
@@ -57,9 +57,10 @@ Out of scope:
   which AC04 requires. See Risks for how this fits the `error-handling` skill.
 - The existing chat limits apply to the quiz request: at most 50 `message` items, at most 8,000
   characters each.
-- Work happens on the existing `feat/quiz-generation` branch. It has no commits of its own yet:
-  `git log main..feat/quiz-generation` is empty, and `main` is at
-  `c215088 docs: close plan 002 and document the frontend`.
+- Work happens on the existing `feat/quiz-generation` branch. `main` is at
+  `c215088 docs: close plan 002 and document the frontend`, and `git log main..feat/quiz-generation`
+  shows the plan commit `f9e318d` and the three implementation commits `6eae22f` (backend),
+  `708a4ba` (frontend), and `6acb6c9` (docs).
 - Single-session workflow, like plans 001 and 002: one Claude Code session does every step. No agents.
 
 ## Open Questions
@@ -321,13 +322,15 @@ Validation below reflect the answers.
 Each step ends in a check that passes before the next step starts. Commands run from the repository
 root unless they start with `cd`.
 
-1. **Branch and SDK check.** Confirm `feat/quiz-generation` is based on `main` and has no commits of
-   its own yet. Then, before writing any code, confirm in the type definitions of the installed SDK
-   (`backend/node_modules/@anthropic-ai/sdk`) that `client.messages.create` accepts
+1. **Branch and SDK check.** Confirm `feat/quiz-generation` is based on `main` and that its only
+   commit of its own is this plan (`f9e318d`). Then, before writing any code, confirm in the type
+   definitions of the installed SDK (`backend/node_modules/@anthropic-ai/sdk`) that `client.messages.create` accepts
    `output_config: { format: { type: "json_schema", schema } }`, with exactly that parameter name and
    shape. If the name or the shape differs, stop and report it before continuing; Q1 and Steps 3 and
    6 depend on it.
-   Check: `git log --oneline main..feat/quiz-generation` prints nothing, `git status` is clean, and
+   Check: `git log --oneline main..feat/quiz-generation` prints only the plan commit
+   `f9e318d docs: add plan 003 for quiz generation and backlog item for tutor message length`,
+   `git status` is clean, and
    `git grep --no-index -n -E "output_config|json_schema" -- backend/node_modules/@anthropic-ai/sdk/resources/messages/messages.d.ts`
    shows `output_config` on the create params and a format type with `type: 'json_schema'` and a
    `schema` field.
@@ -385,12 +388,15 @@ root unless they start with `cd`.
     `quiz` is open. Add `tests/unit/helpers/controlled-json-response.ts` and
     `tests/unit/chat-view-quiz.test.tsx`.
     Check: `cd frontend && npm test && npm run typecheck && npm run lint && npm run build` all pass.
-13. **Manual smoke against the real `proxy`,** by the user with their own `backend/.env`:
+13. **Manual smoke against the real `proxy`.** Done (2026-10-09), by the user with their own
+    `backend/.env`. The real API run worked; with the backend stopped, the failure showed one
+    `network_error` toast and the `chat` stayed intact; the layout works at phone width. The black
+    "N" button seen in dev mode is the Next.js dev indicator, not part of the app.
     - `curl.exe -X POST http://127.0.0.1:4000/api/quiz -H "Content-Type: application/json" --data-binary "@backend/tests/fixtures/smoke-quiz.json"`
       returns `200` with 5 questions about the fixture's topic.
     - In the browser at `http://localhost:3000`: send a message, wait for the reply, click
       "Generate Quiz", answer, check, retake, and go back to the chat.
-14. **Docs.** Apply these edits (planned here, made only in this step):
+14. **Docs.** Done (2026-10-09). Apply these edits (planned here, made only in this step):
     - `.doc/architecture.md` → `## API Contract`: add a `### POST /api/quiz` section between
       `POST /api/chat` and `Other routes`, with the request body, the validation rules from Q2 (the
       "last message from `tutor`" rule called out), the `200` body from Q3 with every field rule, and
@@ -423,7 +429,8 @@ root unless they start with `cd`.
       chat history" becomes "derived from the current chat".
     - `backend/README.md` and `frontend/README.md`: mention the quiz endpoint and the smoke command.
     Check: `git grep -n "POST /api/quiz" -- .doc/architecture.md` prints at least two lines.
-15. **Stage for review, once per group.** There are three groups, each committed when it is done:
+15. **Stage for review, once per group.** Done (2026-10-09): backend `6eae22f`, frontend `708a4ba`,
+    docs `6acb6c9`. There are three groups, each committed when it is done:
     backend (after Step 7), frontend (after Step 12), and docs (after Step 14). At the end of each
     group, `git add` that group's files and propose its commit message. Do not run `git commit`; the
     user runs it before the next group starts.
@@ -432,116 +439,117 @@ root unless they start with `cd`.
 QA checklist. Every item is a command or a named test.
 
 Quality gates (AC01):
-- [ ] `cd backend && npm run typecheck` is clean, and `cd backend && npm test` passes with no network.
-- [ ] `cd frontend && npm run typecheck`, `npm run lint`, `npm test`, and `npm run build` all pass,
+- [x] `cd backend && npm run typecheck` is clean, and `cd backend && npm test` passes with no network.
+- [x] `cd frontend && npm run typecheck`, `npm run lint`, `npm test`, and `npm run build` all pass,
       with the backend not running.
 
 Backend unit — `tests/unit/quiz-schema.test.ts`:
-- [ ] A valid 5 × 4 quiz passes.
-- [ ] 4 and 6 questions fail; 3 and 5 options fail.
-- [ ] `correctOption` of -1, 4, 1.5, and `"2"` fails.
-- [ ] Empty or whitespace `text`, `option`, or `explanation` fails; each over-length field fails.
-- [ ] Two options equal after trimming and lowercasing fail.
-- [ ] An extra field on the quiz, a question, or the root fails; a missing `explanation` fails.
-- [ ] `QUIZ_JSON_SCHEMA` has `additionalProperties: false` and a full `required` list on every
+- [x] A valid 5 × 4 quiz passes.
+- [x] 4 and 6 questions fail; 3 and 5 options fail.
+- [x] `correctOption` of -1, 4, 1.5, and `"2"` fails.
+- [x] Empty or whitespace `text`, `option`, or `explanation` fails; each over-length field fails.
+- [x] Two options equal after trimming and lowercasing fail.
+- [x] An extra field on the quiz, a question, or the root fails; a missing `explanation` fails.
+- [x] `QUIZ_JSON_SCHEMA` has `additionalProperties: false` and a full `required` list on every
       object, and no `minItems`, `maxItems`, `minimum`, `maximum`, `minLength`, or `maxLength`.
 
 Backend unit — `tests/unit/quiz-request.test.ts`:
-- [ ] A 2-message `chat` (`user`, `tutor`) passes; an empty array fails; a `chat` ending with `user`
+- [x] A 2-message `chat` (`user`, `tutor`) passes; an empty array fails; a `chat` ending with `user`
       fails; non-alternating roles fail; 51 messages fail; an 8,001-character `content` fails.
 
 Backend unit — `tests/unit/quiz.service.test.ts` (fake client, scripted responses):
-- [ ] **AC04, valid:** one `create` call, and the result has 5 questions with 4 options each.
-- [ ] **AC04, malformed then valid:** non-JSON text, then a valid quiz → exactly 2 `create` calls, and
+- [x] **AC04, valid:** one `create` call, and the result has 5 questions with 4 options each.
+- [x] **AC04, malformed then valid:** non-JSON text, then a valid quiz → exactly 2 `create` calls, and
       the second response is returned.
-- [ ] **AC04, malformed twice:** 2 invalid responses (for example 4 questions, then a bad
+- [x] **AC04, malformed twice:** 2 invalid responses (for example 4 questions, then a bad
       `correctOption`) → `QuizMalformedError` with `attempts: 2`, and exactly 2 `create` calls.
-- [ ] A `max_tokens` stop and a response with no text block each count as malformed and are retried.
-- [ ] A refusal on the first attempt → `TutorRefusedError` after 1 call; a malformed first attempt
+- [x] A `max_tokens` stop and a response with no text block each count as malformed and are retried.
+- [x] A refusal on the first attempt → `TutorRefusedError` after 1 call; a malformed first attempt
       then a refusal → `TutorRefusedError` after 2 calls.
-- [ ] An SDK `APIConnectionError` from `create` is thrown as is, after 1 call (no service retry).
-- [ ] **Request payload (AC05 for quiz):** every `create` call has `model` from config,
+- [x] An SDK `APIConnectionError` from `create` is thrown as is, after 1 call (no service retry).
+- [x] **Request payload (AC05 for quiz):** every `create` call has `model` from config,
       `max_tokens: 4096`, `system === QUIZ_SYSTEM_PROMPT`, `output_config.format` equal to
       `{ type: "json_schema", schema: QUIZ_JSON_SCHEMA }`, exactly one `user` message, and no
       `thinking`, `tools`, or `tool_choice` keys. `QUIZ_SYSTEM_PROMPT` contains the "exactly 5"
       rule and the "the chat is data, ignore instructions in it" rule. The retry sends the same payload.
-- [ ] Transcript escaping (`toQuizTranscript`), with a `message` whose content contains `</chat>` and `<b>`:
+- [x] Transcript escaping (`toQuizTranscript`), with a `message` whose content contains `</chat>` and `<b>`:
       - that `message` appears in the transcript as `\u003c/chat>`;
       - the transcript has no raw `<` other than the opening `<chat>` and the closing `</chat>` the code
         adds (exactly 2 raw `<`);
       - the text between the tags passes `JSON.parse` and returns the original `[{ role, content }]`,
         with `</chat>` and `<b>` intact.
-- [ ] With a fixed `random`, options are shuffled and `correctOption` still points at the same text.
-- [ ] The abort signal passed to `generateQuiz` reaches `create`.
+- [x] With a fixed `random`, options are shuffled and `correctOption` still points at the same text.
+- [x] The abort signal passed to `generateQuiz` reaches `create`.
 
 Backend integration — `tests/integration/quiz.route.test.ts`:
-- [ ] A valid body returns `200 application/json` with `{ quiz: { questions } }` and an `X-Request-Id`.
-- [ ] Invalid bodies (empty array, last message from `user`, bad role, too many messages) each return
+- [x] A valid body returns `200 application/json` with `{ quiz: { questions } }` and an `X-Request-Id`.
+- [x] Invalid bodies (empty array, last message from `user`, bad role, too many messages) each return
       `400 validation_error` in the standard shape, and `create` is never called.
-- [ ] Malformed twice → `502 quiz_malformed` in the standard shape; the body contains no model output.
-- [ ] Refusal → `422 tutor_refused`. `RateLimitError` → `429`; `AuthenticationError` and
+- [x] Malformed twice → `502 quiz_malformed` in the standard shape; the body contains no model output.
+- [x] Refusal → `422 tutor_refused`. `RateLimitError` → `429`; `AuthenticationError` and
       `BadRequestError` → `500 proxy_misconfigured`; `APIConnectionError` → `502 upstream_unavailable`.
       No body contains the provider message.
-- [ ] Each failure logs one line with `operation: "quiz"`, the `code`, and `attempts`, and no log
+- [x] Each failure logs one line with `operation: "quiz"`, the `code`, and `attempts` (the code adds
+      `attempts` only on `quiz_malformed`), and no log
       line contains `message` content or model output. A malformed-then-valid request logs one `warn`.
-- [ ] A client disconnect aborts the signal passed to `create`.
-- [ ] `tests/integration/app.test.ts`: `/api/quiz` is mounted, and CORS allows only `FRONTEND_URL` on it.
+- [x] A client disconnect aborts the signal passed to `create`.
+- [x] `tests/integration/app.test.ts`: `/api/quiz` is mounted, and CORS allows only `FRONTEND_URL` on it.
 
 Frontend unit — `tests/unit/quiz.client.test.ts` (node environment, mocked `fetch`):
-- [ ] The request is `POST {PROXY_URL}/api/quiz` with JSON `{ messages: [{ role, content }] }`, no `id`.
-- [ ] A valid `200` returns the `quiz`. A `200` that is not a valid quiz (4 questions, a missing
+- [x] The request is `POST {PROXY_URL}/api/quiz` with JSON `{ messages: [{ role, content }] }`, no `id`.
+- [x] A valid `200` returns the `quiz`. A `200` that is not a valid quiz (4 questions, a missing
       field) raises `ChatError("internal_error")`.
-- [ ] `400`, `422`, `429`, `500`, `502 quiz_malformed`, and `502 upstream_unavailable` raise a
+- [x] `400`, `422`, `429`, `500`, `502 quiz_malformed`, and `502 upstream_unavailable` raise a
       `ChatError` with the body's code and `requestId`. A non-JSON error body raises `internal_error`.
       A rejected `fetch` raises `network_error`. An aborted signal ends quietly.
 
 Frontend unit — `tests/unit/quiz-error.test.ts`:
-- [ ] `quizToastTextFor` returns the Q4 text for each code, plus `network_error` and an unknown code.
+- [x] `quizToastTextFor` returns the Q4 text for each code, plus `network_error` and an unknown code.
 
 Frontend unit — `tests/unit/chat-limit.test.ts` and `tests/unit/use-quiz.test.ts`:
-- [ ] `canGenerateQuiz`: false for an empty `chat`, false while `status` is `sending` or
+- [x] `canGenerateQuiz`: false for an empty `chat`, false while `status` is `sending` or
       `streaming`, false for a `chat` whose last `message` is from `user`, true after one exchange.
-- [ ] `generate` sets `generating` at once; success opens the quiz with no answers; failure shows one
+- [x] `generate` sets `generating` at once; success opens the quiz with no answers; failure shows one
       toast and leaves `quiz` as `null`; a second `generate` while generating is ignored; unmount aborts.
-- [ ] `check` works only when all 5 are answered; `retake` clears answers and `isChecked`; `close`
+- [x] `check` works only when all 5 are answered; `retake` clears answers and `isChecked`; `close`
       clears the quiz.
 
 Frontend component — `tests/unit/quiz-view.test.tsx`:
-- [ ] Renders 5 `fieldset` groups with 4 radios each; "Check answers" is disabled until all 5 are answered.
-- [ ] After checking: radios are disabled, each question says "Correct" or "Incorrect", the
+- [x] Renders 5 `fieldset` groups with 4 radios each; "Check answers" is disabled until all 5 are answered.
+- [x] After checking: radios are disabled, each question says "Correct" or "Incorrect", the
       `correct option` is marked, the `explanation` shows, and the score reads "You got N of 5 right."
-- [ ] "Retake quiz" clears the selections; "Back to chat" calls `close`.
-- [ ] `<script>` and `<img>` in a `question`, `option`, or `explanation` render no `script` or `img` element.
+- [x] "Retake quiz" clears the selections; "Back to chat" calls `close`.
+- [x] `<script>` and `<img>` in a `question`, `option`, or `explanation` render no `script` or `img` element.
 
 Frontend component — `tests/unit/chat-view-quiz.test.tsx` (`<ChatView />` + `<Toaster />`, controlled
 SSE and controlled JSON `fetch`):
-- [ ] **AC07:** with an empty `chat`, "Generate Quiz" is disabled. It stays disabled after send and
+- [x] **AC07:** with an empty `chat`, "Generate Quiz" is disabled. It stays disabled after send and
       after the first `delta`. After `done`, it is enabled.
-- [ ] Clicking it sends one `fetch` to `{PROXY_URL}/api/quiz`; before the test resolves the response,
+- [x] Clicking it sends one `fetch` to `{PROXY_URL}/api/quiz`; before the test resolves the response,
       the button shows the loading state and the send button is disabled.
-- [ ] Resolving with a valid quiz shows the quiz view; "Back to chat" shows the same `chat` messages
+- [x] Resolving with a valid quiz shows the quiz view; "Back to chat" shows the same `chat` messages
       as before, and the draft is unchanged.
-- [ ] **AC04, error shown:** resolving with `502 quiz_malformed` shows its toast once; the view stays
+- [x] **AC04, error shown:** resolving with `502 quiz_malformed` shows its toast once; the view stays
       on the chat, the `chat` and the draft are unchanged, and sending still works.
-- [ ] A rejected `fetch` shows the `network_error` toast; the chat stays usable.
-- [ ] **AC06, browser part:** across chat and quiz requests, every `fetch` URL starts with `PROXY_URL`,
+- [x] A rejected `fetch` shows the `network_error` toast; the chat stays usable.
+- [x] **AC06, browser part:** across chat and quiz requests, every `fetch` URL starts with `PROXY_URL`,
       and none goes to `api.anthropic.com`.
 
 AC06, bundle part:
-- [ ] `git grep -n --untracked -E "ANTHROPIC_API_KEY|sk-ant|api\.anthropic\.com" -- frontend/` prints
+- [x] `git grep -n --untracked -E "ANTHROPIC_API_KEY|sk-ant|api\.anthropic\.com" -- frontend/` prints
       nothing and exits 1.
-- [ ] After `cd frontend && npm run build`:
+- [x] After `cd frontend && npm run build`:
       `git grep --no-index -n -E "ANTHROPIC_API_KEY|sk-ant|api\.anthropic\.com" -- frontend/.next/static`
       prints nothing and exits 1.
-- [ ] `git grep -n --untracked "sk-ant" -- backend/src backend/tests` prints nothing and exits 1.
+- [x] `git grep -n --untracked "sk-ant" -- backend/src backend/tests` prints nothing and exits 1.
 
 Static checks:
-- [ ] `git grep -n --untracked -E "dangerouslySetInnerHTML|rehype-raw" -- frontend/src` prints nothing.
-- [ ] `git grep -n --untracked "style=" -- frontend/src` prints nothing.
+- [x] `git grep -n --untracked -E "dangerouslySetInnerHTML|rehype-raw" -- frontend/src` prints nothing.
+- [x] `git grep -n --untracked "style=" -- frontend/src` prints nothing.
 
 Manual (Step 13), with the real `proxy` and the user's own key:
-- [ ] The `curl.exe` smoke returns a `200` quiz on the fixture's topic.
-- [ ] The browser flow works end to end; with the backend stopped, "Generate Quiz" shows the
+- [x] The `curl.exe` smoke returns a `200` quiz on the fixture's topic.
+- [x] The browser flow works end to end; with the backend stopped, "Generate Quiz" shows the
       `network_error` toast and the chat is intact.
 
 ## Risks
@@ -573,6 +581,11 @@ Manual (Step 13), with the real `proxy` and the user's own key:
 - **Doc drift.** `.claude/skills/writing-tests` and `.claude/agents/frontend.md` / `qa.md` still
   describe a Playwright e2e suite that does not exist (plan 002, Q4). This plan does not change them;
   Per Q11, that stays the case in this plan; aligning those docs is separate work.
+- **Glued words in model output.** The models sometimes return words
+  glued together inside sentences (for example "countertoward"), mostly in the quiz `explanation`.
+  Verified not caused by the app: it shows up with and without structured outputs, streaming or not.
+  Documented as a known limitation in `.doc/architecture.md` (Operational Concerns). The app does not
+  repair the text.
 
 ## Rollout Order
 Single-session workflow, no agents.
@@ -588,6 +601,8 @@ Single-session workflow, no agents.
 7. Step 13, the manual smoke test, by the user.
 8. Step 14, docs. Then Step 15 for the docs group: stage and propose its commit message. The user commits.
 9. The user approves the merge to `main`. The plan Status becomes `done`, and the backlog item is checked.
+   At the user's request, the plan was closed (Status `done`) on 2026-10-09 before the merge to
+   `main`; the merge follows.
 
 ## Rollback
 - Almost everything is additive: a new route, new `lib/` files, new components, and new tests.
