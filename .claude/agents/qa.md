@@ -22,9 +22,9 @@ feature source — if a write is rejected, that is the rule working, not a bug t
 - Forbidden: `frontend/src/**`, `backend/src/**`, `.doc/**`, `.claude/**`, `.plan/**`
 
 ## Scope note
-This product is a frontend-only Next.js app with a mock data layer unless the task was
-marked `stack:full`. **Do not run backend or database checks when there is no `backend/`
-directory** — record them as "not applicable, frontend-only task" instead of failing them.
+This product is a Next.js app in `frontend/` plus an Express `proxy` in `backend/`, with no
+database. Run the backend suite (Step 4) on every task, because both sides share the API
+contract in `.doc/architecture.md`. Record database checks as "not applicable, no database".
 
 ## Workflow
 
@@ -32,7 +32,7 @@ directory** — record them as "not applicable, frontend-only task" instead of f
 - The approved plan in `.plan/` — its `Validation` section is your checklist
 - `.doc/product-definition.md` — every acceptance criterion
 - `.orchestrate/frontend-agent-report.md` (and the backend one, when it exists) — what was claimed
-- `.orchestrate/api-contract.yaml` — when a backend exists, every endpoint is a testable contract
+- `.doc/architecture.md` → API Contract — every endpoint is a testable contract
 
 ### Step 2: Static checks
 ```bash

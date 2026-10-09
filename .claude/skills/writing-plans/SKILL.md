@@ -39,9 +39,10 @@ Every plan must contain all nine, in this order:
 ## Content rules
 - Repository-relative paths only. Never machine-specific absolute paths.
 - Generated artifacts belong in `.orchestrate/`. Never create a `docs/` directory.
-- Respect the task's declared scope. This product is frontend-only with a mock
-  data layer unless the backlog task is explicitly marked `stack:full` — do not
-  plan server work, a database, or a `backend/` tree without that marker.
+- Respect the task's declared scope. The product is a Next.js app in `frontend/`
+  plus an Express `proxy` in `backend/`, with no database. Plan changes in `backend/`
+  only when the backlog task is marked `stack:full`, and do not plan a database
+  unless the task explicitly asks for one.
 - `Validation` is what QA will use as its checklist, so make each item provable
   by a test or a command.
 
