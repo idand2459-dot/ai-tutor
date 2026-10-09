@@ -14,8 +14,10 @@ export const messageSchema = z.object({
     .refine(content => content.trim() !== '', { error: 'must not be empty' })
 })
 
-export const chatRequestSchema = z.object({
-  messages: z
+// The `messages` array and its order rules, shared by POST /api/chat and POST /api/quiz:
+// the first message is from "user", the last from `lastRole`, and roles alternate.
+export function messageListSchema(lastRole: 'user' | 'tutor') {
+  return z
     .array(messageSchema, { error: 'must be an array' })
     .min(1, { error: 'must contain at least one message' })
     .max(MAX_MESSAGES, { error: `must contain at most ${MAX_MESSAGES} messages` })
@@ -27,8 +29,8 @@ export const chatRequestSchema = z.object({
       if (messages[0]?.role !== 'user') {
         ctx.addIssue({ code: 'custom', path: [0, 'role'], message: 'the first message must be from "user"' })
       }
-      if (messages.at(-1)?.role !== 'user') {
-        ctx.addIssue({ code: 'custom', path: [messages.length - 1, 'role'], message: 'the last message must be from "user"' })
+      if (messages.at(-1)?.role !== lastRole) {
+        ctx.addIssue({ code: 'custom', path: [messages.length - 1, 'role'], message: `the last message must be from "${lastRole}"` })
       }
       messages.forEach((message, index) => {
         if (index > 0 && message.role === messages[index - 1]?.role) {
@@ -36,6 +38,10 @@ export const chatRequestSchema = z.object({
         }
       })
     })
+}
+
+export const chatRequestSchema = z.object({
+  messages: messageListSchema('user')
 }, { error: 'must be a JSON object' })
 
 export type ChatRequest = z.infer<typeof chatRequestSchema>

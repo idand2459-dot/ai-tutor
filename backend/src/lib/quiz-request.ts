@@ -1,30 +1,10 @@
 import { z } from 'zod'
-import { MAX_MESSAGES, messageSchema, type FieldIssue } from './chat-request.js'
+import { messageListSchema, type FieldIssue } from './chat-request.js'
 
 // The same message rules as POST /api/chat, but the chat must end with a full exchange:
 // a quiz is built from what the tutor already said, so the last message is from "tutor".
 export const quizRequestSchema = z.object({
-  messages: z
-    .array(messageSchema, { error: 'must be an array' })
-    .min(1, { error: 'must contain at least one message' })
-    .max(MAX_MESSAGES, { error: `must contain at most ${MAX_MESSAGES} messages` })
-    .superRefine((messages, ctx) => {
-      // An empty array is already reported by `min`; order rules have nothing to check.
-      if (messages.length === 0) {
-        return
-      }
-      if (messages[0]?.role !== 'user') {
-        ctx.addIssue({ code: 'custom', path: [0, 'role'], message: 'the first message must be from "user"' })
-      }
-      if (messages.at(-1)?.role !== 'tutor') {
-        ctx.addIssue({ code: 'custom', path: [messages.length - 1, 'role'], message: 'the last message must be from "tutor"' })
-      }
-      messages.forEach((message, index) => {
-        if (index > 0 && message.role === messages[index - 1]?.role) {
-          ctx.addIssue({ code: 'custom', path: [index, 'role'], message: 'roles must alternate between "user" and "tutor"' })
-        }
-      })
-    })
+  messages: messageListSchema('tutor')
 }, { error: 'must be a JSON object' })
 
 export type QuizRequest = z.infer<typeof quizRequestSchema>
