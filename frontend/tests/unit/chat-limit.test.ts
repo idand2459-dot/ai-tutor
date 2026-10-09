@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest"
 import {
+  canGenerateQuiz,
   canSend,
   isChatFull,
   isDraftTooLong,
@@ -89,5 +90,50 @@ describe("canSend", () => {
 
   it("blocks a draft of 8,001 characters", () => {
     expect(canSend([], "a".repeat(8001))).toBe(false)
+  })
+})
+
+describe("canGenerateQuiz", () => {
+  it("is false for an empty chat", () => {
+    expect(canGenerateQuiz([], "idle")).toBe(false)
+  })
+
+  it.each(["sending", "streaming"] as const)("is false while the status is %s", (status) => {
+    expect(canGenerateQuiz(buildChat(2), status)).toBe(false)
+  })
+
+  it("is false when the last message is from the user", () => {
+    expect(canGenerateQuiz(buildChat(3), "idle")).toBe(false)
+  })
+
+  it.each(["", "   ", " \n\t "])("is false when the last tutor message is empty or whitespace only (%j)", (content) => {
+    const chat = buildChat(2)
+    chat[1] = { ...chat[1], content }
+
+    expect(canGenerateQuiz(chat, "idle")).toBe(false)
+  })
+
+  it("is true after one full exchange", () => {
+    expect(canGenerateQuiz(buildChat(2), "idle")).toBe(true)
+  })
+
+  it("is true after several exchanges", () => {
+    expect(canGenerateQuiz(buildChat(6), "idle")).toBe(true)
+  })
+
+  it("is true when an earlier tutor message is empty but the last tutor message is not", () => {
+    const chat = buildChat(4)
+    chat[1] = { ...chat[1], content: "" }
+
+    expect(canGenerateQuiz(chat, "idle")).toBe(true)
+  })
+
+  it("does not change the chat it reads", () => {
+    const chat = buildChat(2)
+    const copy = structuredClone(chat)
+
+    canGenerateQuiz(chat, "idle")
+
+    expect(chat).toEqual(copy)
   })
 })

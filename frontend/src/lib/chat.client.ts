@@ -117,7 +117,7 @@ function toChatEvent(message: EventSourceMessage, headerRequestId?: string): Cha
   }
 }
 
-async function readErrorResponse(response: Response, headerRequestId?: string): Promise<ChatError> {
+export async function readErrorResponse(response: Response, headerRequestId?: string): Promise<ChatError> {
   try {
     return toChatError(await response.json(), headerRequestId)
   } catch {
