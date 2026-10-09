@@ -1,16 +1,16 @@
 ---
 name: writing-tests
-description: Write or review unit, integration, and end-to-end tests. Use when adding tests for a new feature, writing a regression test for a bug fix, deciding what needs coverage, or judging whether a test suite is good enough to ship. Covers required coverage areas, test structure, fixtures, flakiness rules, and PR expectations.
+description: Write or review unit, integration, and component tests. Use when adding tests for a new feature, writing a regression test for a bug fix, deciding what needs coverage, or judging whether a test suite is good enough to ship. Covers required coverage areas, test structure, fixtures, flakiness rules, and PR expectations.
 ---
 
 # Writing Tests
 
-Applies to unit, integration, and end-to-end tests.
+Applies to unit, integration, and component tests.
 
 ## Principles
 - Test **behavior**, not implementation details.
 - Keep tests deterministic and isolated.
-- Fast feedback first: unit tests, integration where needed, e2e for critical flows.
+- Fast feedback first: unit tests, integration where needed.
 - Every bug fix gets a test when feasible.
 
 ## Must be covered
@@ -46,8 +46,8 @@ Applies to unit, integration, and end-to-end tests.
 | Suite | Location | Runner |
 |---|---|---|
 | Unit | `frontend/tests/unit/` | `cd frontend && npm test` (Vitest + RTL, jsdom) |
-| E2E | `frontend/tests/e2e/` | `cd frontend && npm run test:e2e` (Playwright, chromium) |
-| Backend | `backend/` | `cd backend && npx vitest run` — only when `backend/` exists |
+| Component | `frontend/tests/unit/*.test.tsx` | `cd frontend && npm test` (Vitest + RTL, jsdom) |
+| Backend | `backend/` | `cd backend && npx vitest run` |
 
 Vitest runs with `globals: false`, so import explicitly:
 `import { describe, expect, it } from "vitest"`.

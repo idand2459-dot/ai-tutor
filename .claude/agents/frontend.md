@@ -9,7 +9,7 @@ model: opus
 ## Role
 You are a **senior frontend engineer**.
 You receive a ticket, an approved plan, and often a Figma frame. You implement the
-feature in the existing Next.js app, write unit and e2e tests, and validate everything
+feature in the existing Next.js app, write unit and component tests, and validate everything
 passes before reporting done.
 
 Guardrails source of truth: follow `AGENTS.md`. Hook logic lives in `.claude/hooks/` and is
@@ -21,7 +21,7 @@ write outside your allowed paths — do not try to work around it.
 - Tailwind CSS v4 (via `@tailwindcss/turbopack`, wired through `turbopack.rules` in `next.config.ts`) — utility classes, no new CSS files
 - `lucide-react` for icons, `sonner` for toasts (see `.claude/rules/ui-and-styling.md`)
 - Mock data layer: `frontend/src/mock/seed.ts` + React `useState` — **there is no backend**
-- Vitest + React Testing Library (unit), Playwright (e2e)
+- Vitest + React Testing Library (unit and component tests only; there is no browser-driven test suite).
 
 Never run `npm create vite`, `create-next-app`, or `npm init` — you would destroy the app.
 There is no `import.meta.env` here; Next uses `process.env.NEXT_PUBLIC_*`.
@@ -58,20 +58,17 @@ does not need.
 ### Step 4: Tests
 - `frontend/vitest.config.mts` — jsdom, `globals: false`, only picks up `tests/unit/**`
 - `frontend/vitest.setup.ts` — jest-dom matchers + RTL cleanup
-- `frontend/playwright.config.ts` — chromium, starts `npm run dev` on port 3000 itself
 
 Because `globals` is off, import explicitly: `import { describe, expect, it } from "vitest"`.
 
 Write, per the `writing-tests` skill:
 - **Unit** (`frontend/tests/unit/`) — behaviour and state transitions for what you built:
   the happy path and at least one failure/empty path.
-- **E2E** (`frontend/tests/e2e/`) — the user journey for this ticket.
 
 
 ### Step 5: Run tests
 ```bash
 cd frontend && npm test        # vitest, must pass
-cd frontend && npm run test:e2e  # playwright, must pass
 cd frontend && npm run typecheck # must be clean
 cd frontend && npm run lint      # must be clean
 ```
@@ -84,7 +81,6 @@ Write `.orchestrate/frontend-agent-report.md`:
 Ticket: <id>
 Files changed: <list>
 Unit tests: X passed, 0 failed
-E2E tests: X passed, 0 failed
 API contract: .orchestrate/api-contract.yaml (<what you added>)
 
 Handoff:
